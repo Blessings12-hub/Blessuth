@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { doc, onSnapshot, setDoc, updateDoc, arrayUnion } from 'firebase/firestore'
-import { db } from '../firebase/config'
+import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 
 const COLORS = ['#2d2d2d', '#e63946', '#f4a261', '#2a9d8f', '#457b9d', '#e76f51', '#ffffff']
@@ -12,11 +11,7 @@ export default function Canvas() {
   const currentStroke = useRef([])
   const [color, setColor] = useState('#2d2d2d')
   const [width, setWidth] = useState(4)
-  const strokesRef = useRef([])
 
-  const boardId = couple ? `${couple.id}_board` : null
-
-  // Redraw everything from a strokes array
   function renderAll(strokes) {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -36,16 +31,29 @@ export default function Canvas() {
     })
   }
 
+  async function loadBoard() {
+    const { data } = await supabase
+      .from('boards')
+      .select('strokes')
+      .eq('couple_id', couple.id)
+      .maybeSingle()
+    renderAll(data?.strokes || [])
+  }
+
   useEffect(() => {
-    if (!boardId) return
-    const ref = doc(db, 'boards', boardId)
-    const unsub = onSnapshot(ref, (snap) => {
-      const strokes = snap.exists() ? snap.data().strokes || [] : []
-      strokesRef.current = strokes
-      renderAll(strokes)
-    })
-    return unsub
-  }, [boardId])
+    if (!couple) return
+    loadBoard()
+    const channel = supabase
+      .channel(`board-${couple.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'boards', filter: `couple_id=eq.${couple.id}` },
+        loadBoard
+      )
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couple?.id])
 
   function getPos(e) {
     const canvas = canvasRef.current
@@ -68,7 +76,6 @@ export default function Canvas() {
     e.preventDefault()
     const pos = getPos(e)
     currentStroke.current.push(pos)
-    // draw locally for instant feedback
     const ctx = canvasRef.current.getContext('2d')
     const pts = currentStroke.current
     if (pts.length >= 2) {
@@ -87,19 +94,26 @@ export default function Canvas() {
     if (!drawing.current) return
     drawing.current = false
     if (currentStroke.current.length < 2) return
-    const stroke = { points: currentStroke.current, color, width, by: user.uid }
+    const stroke = { points: currentStroke.current, color, width, by: user.id }
     currentStroke.current = []
-    const ref = doc(db, 'boards', boardId)
-    try {
-      await updateDoc(ref, { strokes: arrayUnion(stroke) })
-    } catch {
-      await setDoc(ref, { strokes: [stroke] })
+
+    const { data } = await supabase
+      .from('boards')
+      .select('strokes')
+      .eq('couple_id', couple.id)
+      .maybeSingle()
+    const strokes = [...(data?.strokes || []), stroke]
+
+    if (data) {
+      await supabase.from('boards').update({ strokes }).eq('couple_id', couple.id)
+    } else {
+      await supabase.from('boards').insert({ couple_id: couple.id, strokes })
     }
   }
 
   async function clearBoard() {
     if (!confirm('Clear the whole canvas for both of you?')) return
-    await setDoc(doc(db, 'boards', boardId), { strokes: [] })
+    await supabase.from('boards').upsert({ couple_id: couple.id, strokes: [] })
   }
 
   return (

@@ -1,16 +1,5 @@
 import { useEffect, useState } from 'react'
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  orderBy,
-  query,
-  serverTimestamp,
-  onSnapshot,
-} from 'firebase/firestore'
-import { getDownloadURL, ref, uploadBytes, deleteObject } from 'firebase/storage'
-import { db, storage } from '../firebase/config'
+import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 
 export default function Photos() {
@@ -19,34 +8,48 @@ export default function Photos() {
   const [uploading, setUploading] = useState(false)
   const [caption, setCaption] = useState('')
 
+  async function loadPhotos() {
+    const { data } = await supabase
+      .from('photos')
+      .select('*')
+      .eq('couple_id', couple.id)
+      .order('created_at', { ascending: false })
+    setPhotos(data || [])
+  }
+
   useEffect(() => {
     if (!couple) return
-    const q = query(
-      collection(db, 'couples', couple.id, 'photos'),
-      orderBy('createdAt', 'desc')
-    )
-    const unsub = onSnapshot(q, (snap) => {
-      setPhotos(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    })
-    return unsub
-  }, [couple])
+    loadPhotos()
+    const channel = supabase
+      .channel(`photos-${couple.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'photos', filter: `couple_id=eq.${couple.id}` },
+        loadPhotos
+      )
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couple?.id])
 
   async function handleUpload(e) {
     const file = e.target.files[0]
     if (!file || !couple) return
     setUploading(true)
     try {
-      const path = `couples/${couple.id}/photos/${Date.now()}_${file.name}`
-      const storageRef = ref(storage, path)
-      await uploadBytes(storageRef, file)
-      const url = await getDownloadURL(storageRef)
-      await addDoc(collection(db, 'couples', couple.id, 'photos'), {
-        url,
+      const path = `${couple.id}/${Date.now()}_${file.name}`
+      const { error: uploadError } = await supabase.storage.from('photos').upload(path, file)
+      if (uploadError) throw uploadError
+      const { data: urlData } = supabase.storage.from('photos').getPublicUrl(path)
+      const { error: insertError } = await supabase.from('photos').insert({
+        couple_id: couple.id,
+        url: urlData.publicUrl,
         path,
         caption,
-        uploadedBy: profile?.displayName || user.uid,
-        createdAt: serverTimestamp(),
+        uploaded_by: profile?.display_name || user.id,
+        uploaded_by_uid: user.id,
       })
+      if (insertError) throw insertError
       setCaption('')
     } catch (err) {
       alert('Upload failed: ' + err.message)
@@ -58,12 +61,8 @@ export default function Photos() {
 
   async function handleDelete(photo) {
     if (!confirm('Delete this memory?')) return
-    try {
-      await deleteObject(ref(storage, photo.path))
-    } catch {
-      // ignore if already gone
-    }
-    await deleteDoc(doc(db, 'couples', couple.id, 'photos', photo.id))
+    await supabase.storage.from('photos').remove([photo.path])
+    await supabase.from('photos').delete().eq('id', photo.id)
   }
 
   return (
@@ -96,7 +95,7 @@ export default function Photos() {
             <img src={p.url} alt={p.caption || 'memory'} />
             {p.caption && <div className="photo-caption">{p.caption}</div>}
             <div className="photo-meta">
-              <span>{p.uploadedBy}</span>
+              <span>{p.uploaded_by}</span>
               <button className="link-btn small" onClick={() => handleDelete(p)}>
                 delete
               </button>

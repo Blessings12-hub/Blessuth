@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
-import { db } from '../firebase/config'
+import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 
 const MOODS = ['😊', '😍', '😴', '😢', '😤', '🥳', '😌', '🤒', '😬', '🥰']
@@ -12,33 +11,41 @@ export default function Music() {
   const [mood, setMood] = useState('😊')
   const [song, setSong] = useState('')
 
-  useEffect(() => {
-    if (!couple) return
-    const ref = doc(db, 'couples', couple.id, 'mood', user.uid)
-    const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        setMine(snap.data())
-        setMood(snap.data().mood)
-        setSong(snap.data().song || '')
-      }
-    })
-    return unsub
-  }, [couple, user])
+  async function loadMoods() {
+    const { data } = await supabase.from('moods').select('*').eq('couple_id', couple.id)
+    const mineRow = data?.find((r) => r.user_id === user.id) || null
+    setMine(mineRow)
+    if (mineRow) {
+      setMood(mineRow.mood)
+      setSong(mineRow.song || '')
+    }
+    setTheirs(data?.find((r) => r.user_id === partnerUid) || null)
+  }
 
   useEffect(() => {
-    if (!couple || !partnerUid) return
-    const ref = doc(db, 'couples', couple.id, 'mood', partnerUid)
-    const unsub = onSnapshot(ref, (snap) => setTheirs(snap.exists() ? snap.data() : null))
-    return unsub
-  }, [couple, partnerUid])
+    if (!couple) return
+    loadMoods()
+    const channel = supabase
+      .channel(`moods-${couple.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'moods', filter: `couple_id=eq.${couple.id}` },
+        loadMoods
+      )
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couple?.id, partnerUid])
 
   async function save(e) {
     e.preventDefault()
-    await setDoc(doc(db, 'couples', couple.id, 'mood', user.uid), {
+    await supabase.from('moods').upsert({
+      couple_id: couple.id,
+      user_id: user.id,
       mood,
       song,
-      label: profile?.displayName || 'Me',
-      updatedAt: serverTimestamp(),
+      label: profile?.display_name || 'Me',
+      updated_at: new Date().toISOString(),
     })
   }
 

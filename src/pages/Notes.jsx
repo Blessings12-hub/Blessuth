@@ -1,15 +1,5 @@
 import { useEffect, useState } from 'react'
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-} from 'firebase/firestore'
-import { db } from '../firebase/config'
+import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 
 export default function Notes() {
@@ -17,32 +7,44 @@ export default function Notes() {
   const [notes, setNotes] = useState([])
   const [text, setText] = useState('')
 
+  async function loadNotes() {
+    const { data } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('couple_id', couple.id)
+      .order('created_at', { ascending: false })
+    setNotes(data || [])
+  }
+
   useEffect(() => {
     if (!couple) return
-    const q = query(
-      collection(db, 'couples', couple.id, 'notes'),
-      orderBy('createdAt', 'desc')
-    )
-    const unsub = onSnapshot(q, (snap) => {
-      setNotes(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    })
-    return unsub
-  }, [couple])
+    loadNotes()
+    const channel = supabase
+      .channel(`notes-${couple.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notes', filter: `couple_id=eq.${couple.id}` },
+        loadNotes
+      )
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couple?.id])
 
   async function send(e) {
     e.preventDefault()
     if (!text.trim()) return
-    await addDoc(collection(db, 'couples', couple.id, 'notes'), {
+    await supabase.from('notes').insert({
+      couple_id: couple.id,
       text: text.trim(),
-      from: profile?.displayName || 'Me',
-      fromUid: user.uid,
-      createdAt: serverTimestamp(),
+      from_name: profile?.display_name || 'Me',
+      from_uid: user.id,
     })
     setText('')
   }
 
   async function remove(id) {
-    await deleteDoc(doc(db, 'couples', couple.id, 'notes', id))
+    await supabase.from('notes').delete().eq('id', id)
   }
 
   return (
@@ -64,12 +66,12 @@ export default function Notes() {
         {notes.map((n) => (
           <div
             key={n.id}
-            className={'note-card' + (n.fromUid === user.uid ? ' mine' : '')}
+            className={'note-card' + (n.from_uid === user.id ? ' mine' : '')}
           >
             <div className="note-text">{n.text}</div>
             <div className="note-meta">
-              <span>{n.from}</span>
-              {n.fromUid === user.uid && (
+              <span>{n.from_name}</span>
+              {n.from_uid === user.id && (
                 <button className="link-btn small" onClick={() => remove(n.id)}>
                   delete
                 </button>

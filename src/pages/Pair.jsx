@@ -32,7 +32,7 @@ export default function Pair() {
 
       <div className="pair-code-box">
         <p>Your code</p>
-        <div className="pair-code">{profile?.pairCode || '……'}</div>
+        <div className="pair-code">{profile?.pair_code || '……'}</div>
       </div>
 
       <form onSubmit={handleSubmit} className="auth-form">

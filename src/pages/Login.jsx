@@ -18,7 +18,7 @@ export default function Login() {
       await login(email, password)
       navigate('/')
     } catch (err) {
-      setError(err.message.replace('Firebase: ', ''))
+      setError(err.message)
     } finally {
       setBusy(false)
     }
@@ -26,7 +26,7 @@ export default function Login() {
 
   return (
     <div className="auth-screen">
-      <h1>💕 Together</h1>
+      <h1>💕 Blescy</h1>
       <p className="subtitle">Stay close, from anywhere.</p>
       <form onSubmit={handleSubmit} className="auth-form">
         <input

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { doc, updateDoc } from 'firebase/firestore'
-import { db } from '../firebase/config'
+import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 
 function daysUntil(dateStr) {
@@ -16,16 +15,17 @@ function daysUntil(dateStr) {
 export default function Dashboard() {
   const { user, profile, couple, partnerName, logout } = useAuth()
   const [editingDate, setEditingDate] = useState(false)
-  const [dateInput, setDateInput] = useState(couple?.nextVisitDate || '')
+  const [dateInput, setDateInput] = useState(couple?.next_visit_date || '')
 
-  const days = daysUntil(couple?.nextVisitDate)
+  const days = daysUntil(couple?.next_visit_date)
 
   async function saveDate(e) {
     e.preventDefault()
     if (!couple) return
-    await updateDoc(doc(db, 'couples', couple.id), {
-      nextVisitDate: dateInput || null,
-    })
+    await supabase
+      .from('couples')
+      .update({ next_visit_date: dateInput || null })
+      .eq('id', couple.id)
     setEditingDate(false)
   }
 
@@ -42,7 +42,7 @@ export default function Dashboard() {
     <div className="screen with-nav">
       <header className="dash-header">
         <div>
-          <h1>Hi {profile?.displayName} 👋</h1>
+          <h1>Hi {profile?.display_name} 👋</h1>
           <p className="subtitle">
             {partnerName ? `Connected with ${partnerName}` : 'Waiting to connect…'}
           </p>
@@ -70,7 +70,7 @@ export default function Dashboard() {
           </form>
         ) : (
           <div onClick={() => setEditingDate(true)} className="countdown-display">
-            {couple?.nextVisitDate ? (
+            {couple?.next_visit_date ? (
               <>
                 <div className="countdown-number">
                   {days > 0 ? days : days === 0 ? '🎉' : '—'}

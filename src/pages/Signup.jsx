@@ -19,7 +19,7 @@ export default function Signup() {
       await signup(email, password, name)
       navigate('/pair')
     } catch (err) {
-      setError(err.message.replace('Firebase: ', ''))
+      setError(err.message)
     } finally {
       setBusy(false)
     }
@@ -27,7 +27,7 @@ export default function Signup() {
 
   return (
     <div className="auth-screen">
-      <h1>💕 Together</h1>
+      <h1>💕 Blescy</h1>
       <p className="subtitle">Create your account</p>
       <form onSubmit={handleSubmit} className="auth-form">
         <input

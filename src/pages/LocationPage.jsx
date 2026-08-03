@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
-import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
 import L from 'leaflet'
-import { db } from '../firebase/config'
+import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 
-// Default Leaflet marker icons need explicit URLs when bundled
 const icon = new L.Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -33,19 +31,26 @@ export default function LocationPage() {
   const [sharing, setSharing] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (!couple) return
-    const ref = doc(db, 'couples', couple.id, 'location', user.uid)
-    const unsub = onSnapshot(ref, (snap) => setMine(snap.exists() ? snap.data() : null))
-    return unsub
-  }, [couple, user])
+  async function loadLocations() {
+    const { data } = await supabase.from('locations').select('*').eq('couple_id', couple.id)
+    setMine(data?.find((r) => r.user_id === user.id) || null)
+    setTheirs(data?.find((r) => r.user_id === partnerUid) || null)
+  }
 
   useEffect(() => {
-    if (!couple || !partnerUid) return
-    const ref = doc(db, 'couples', couple.id, 'location', partnerUid)
-    const unsub = onSnapshot(ref, (snap) => setTheirs(snap.exists() ? snap.data() : null))
-    return unsub
-  }, [couple, partnerUid])
+    if (!couple) return
+    loadLocations()
+    const channel = supabase
+      .channel(`locations-${couple.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'locations', filter: `couple_id=eq.${couple.id}` },
+        loadLocations
+      )
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couple?.id, partnerUid])
 
   function shareLocation() {
     setError('')
@@ -56,11 +61,13 @@ export default function LocationPage() {
     setSharing(true)
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        await setDoc(doc(db, 'couples', couple.id, 'location', user.uid), {
+        await supabase.from('locations').upsert({
+          couple_id: couple.id,
+          user_id: user.id,
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
-          label: profile?.displayName || 'Me',
-          updatedAt: serverTimestamp(),
+          label: profile?.display_name || 'Me',
+          updated_at: new Date().toISOString(),
         })
         setSharing(false)
       },

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { db } from '../firebase/config'
+import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 
 const QUIZ_SETS = {
@@ -42,16 +41,37 @@ export default function Quizzes() {
   const [myAnswers, setMyAnswers] = useState([])
   const [partnerAnswers, setPartnerAnswers] = useState(null)
 
+  async function loadAnswers() {
+    const { data } = await supabase
+      .from('quiz_answers')
+      .select('*')
+      .eq('couple_id', couple.id)
+      .eq('quiz_key', activeQuiz)
+    const mine = data?.find((r) => r.user_id === user.id)
+    const theirs = data?.find((r) => r.user_id === partnerUid)
+    setMyAnswers(mine?.answers || [])
+    setPartnerAnswers(theirs?.answers || null)
+  }
+
   useEffect(() => {
     if (!couple || !activeQuiz) return
-    const ref = doc(db, 'couples', couple.id, 'quizzes', activeQuiz)
-    const unsub = onSnapshot(ref, (snap) => {
-      const data = snap.exists() ? snap.data() : {}
-      setMyAnswers(data[user.uid] || [])
-      setPartnerAnswers(partnerUid ? data[partnerUid] || null : null)
-    })
-    return unsub
-  }, [couple, activeQuiz, user, partnerUid])
+    loadAnswers()
+    const channel = supabase
+      .channel(`quiz-${couple.id}-${activeQuiz}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'quiz_answers',
+          filter: `couple_id=eq.${couple.id}`,
+        },
+        loadAnswers
+      )
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couple?.id, activeQuiz, partnerUid])
 
   function openQuiz(key) {
     setActiveQuiz(key)
@@ -62,11 +82,13 @@ export default function Quizzes() {
     e.preventDefault()
     const set = QUIZ_SETS[activeQuiz]
     const list = set.questions.map((_, i) => answers[i] || '')
-    await setDoc(
-      doc(db, 'couples', couple.id, 'quizzes', activeQuiz),
-      { [user.uid]: list, [`${user.uid}_name`]: profile?.displayName || 'You' },
-      { merge: true }
-    )
+    await supabase.from('quiz_answers').upsert({
+      couple_id: couple.id,
+      quiz_key: activeQuiz,
+      user_id: user.id,
+      user_name: profile?.display_name || 'You',
+      answers: list,
+    })
   }
 
   if (!activeQuiz) {
