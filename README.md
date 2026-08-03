@@ -1,39 +1,38 @@
-# Together 💕
+# Blescy 💕
 
 A private app for long-distance couples: shared canvas, photo memories, quizzes,
 mood/music sharing, location distance, and love notes.
 
-## 1. Create a Firebase project (free)
+Built with Vite + React + Supabase (Postgres, Auth, Storage, Realtime — all on
+Supabase's free tier, no credit card required).
 
-1. Go to https://console.firebase.google.com → **Add project** → name it anything.
-2. In the project, go to **Build → Authentication → Get started** → enable
-   **Email/Password** sign-in method.
-3. Go to **Build → Firestore Database → Create database** → start in
-   **production mode** → pick any region.
-4. Go to **Build → Storage → Get started** → same, production mode.
-5. Go to **Project settings (gear icon) → General → Your apps → Add app → Web (`</>`)**.
-   Register it (no need for Firebase Hosting). Copy the `firebaseConfig` values.
+## 1. Create a Supabase project (free)
 
-## 2. Add your Firebase config
+1. Go to https://supabase.com → **Start your project** → sign in → **New project**.
+2. Pick any name and a database password (save it somewhere), any region → **Create**.
+3. Wait ~1 minute for it to spin up.
 
-Rename `.env.example` to `.env` and fill in the values from step 1.5:
+## 2. Set up the database
+
+1. In your project, open **SQL Editor** (left sidebar) → **New query**.
+2. Open `supabase.sql` from this project, copy the whole file, paste it in, and click **Run**.
+   This creates all the tables, security rules, and a `pair_with_code` function in one go.
+3. Go to **Storage** (left sidebar) → **New bucket** → name it exactly `photos` →
+   leave "Public bucket" **unchecked** → Create.
+4. For frictionless testing, go to **Authentication → Providers → Email** and turn
+   **off** "Confirm email" (so accounts work immediately without a verification click).
+   You can turn this back on later once you deploy for real use.
+
+## 3. Add your Supabase config
+
+1. In Supabase, go to **Project Settings → API**. Copy the **Project URL** and the
+   **anon public** key.
+2. Rename `.env.example` to `.env` and fill in:
 
 ```
-VITE_FIREBASE_API_KEY=...
-VITE_FIREBASE_AUTH_DOMAIN=...
-VITE_FIREBASE_PROJECT_ID=...
-VITE_FIREBASE_STORAGE_BUCKET=...
-VITE_FIREBASE_MESSAGING_SENDER_ID=...
-VITE_FIREBASE_APP_ID=...
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
-
-## 3. Deploy the security rules
-
-In the Firebase console:
-- **Firestore Database → Rules** → paste the contents of `firestore.rules` → Publish.
-- **Storage → Rules** → paste the contents of `storage.rules` → Publish.
-
-(These lock data down so only you and your paired partner can read/write your couple's data.)
 
 ## 4. Push to GitHub
 
@@ -55,7 +54,8 @@ prefer not to use git commands.)
 
 1. Go to https://vercel.com → **Add New → Project** → import your GitHub repo.
 2. Framework preset should auto-detect as **Vite**.
-3. Under **Environment Variables**, add the same 6 `VITE_FIREBASE_*` values from your `.env`.
+3. Under **Environment Variables**, add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+   from your `.env`.
 4. Deploy. You'll get a live `.vercel.app` URL.
 
 ## 6. Use it
@@ -67,14 +67,16 @@ prefer not to use git commands.)
 
 ## Notes on the features
 
-- **Canvas**: fully real-time — strokes sync instantly between both of you via Firestore.
-- **Photos**: uploads go to Firebase Storage, shown in a shared gallery.
+- **Canvas**: real-time — strokes sync between both of you via Supabase Realtime.
+- **Photos**: uploads go to Supabase Storage, shown in a shared gallery.
 - **Quizzes**: three built-in quiz sets; each answers privately, results reveal once both are in.
 - **Location**: uses your phone's GPS (you tap "Share my location"), shows both pins on a
-  free OpenStreetMap map and the distance between you. No Google Maps API key needed.
+  free OpenStreetMap map and the distance between you. No API key needed.
 - **Mood/Music**: a simple emoji mood + "currently listening to" text field, shared live.
 - **Love Notes**: a lightweight shared message feed.
 - **Next visit countdown**: tap the card on the home screen to set a date.
+- **Pairing**: handled by a Postgres function (`pair_with_code`) so both accounts get
+  linked atomically and safely — a plain client update can't touch your partner's row.
 
 ## Local development
 
@@ -85,6 +87,5 @@ npm run dev
 
 ## Extending it later
 
-Ideas for v2: push notifications (Firebase Cloud Messaging), Spotify OAuth for real
-"currently playing" instead of manual entry, a shared calendar, video call deep-link,
-streaks/daily-question prompts.
+Ideas for v2: push notifications, Spotify OAuth for real "currently playing" instead
+of manual entry, a shared calendar, video call deep-link, streaks/daily-question prompts.
