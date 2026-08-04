@@ -3,6 +3,7 @@ import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
 import L from 'leaflet'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
+import DistanceWidget from '../components/DistanceWidget'
 
 const icon = new L.Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -11,18 +12,6 @@ const icon = new L.Icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
 })
-
-function haversineKm(a, b) {
-  const R = 6371
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180
-  const lat1 = (a.lat * Math.PI) / 180
-  const lat2 = (b.lat * Math.PI) / 180
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(h))
-}
 
 export default function LocationPage() {
   const { couple, user, partnerUid, partnerName, profile } = useAuth()
@@ -79,7 +68,6 @@ export default function LocationPage() {
     )
   }
 
-  const distance = mine && theirs ? haversineKm(mine, theirs) : null
   const center = mine ? [mine.lat, mine.lng] : theirs ? [theirs.lat, theirs.lng] : [20, 0]
 
   return (
@@ -92,12 +80,7 @@ export default function LocationPage() {
       </button>
       {error && <p className="error">{error}</p>}
 
-      {distance !== null && (
-        <div className="distance-card">
-          <div className="distance-number">{Math.round(distance).toLocaleString()} km</div>
-          <div className="distance-label">apart right now</div>
-        </div>
-      )}
+      <DistanceWidget />
 
       {(mine || theirs) && (
         <div className="map-wrap">

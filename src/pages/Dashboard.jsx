@@ -4,6 +4,7 @@ import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 import Logo from '../components/Logo'
 import DailyQuestion from '../components/DailyQuestion'
+import DistanceWidget from '../components/DistanceWidget'
 
 function daysUntil(dateStr) {
   if (!dateStr) return null
@@ -33,29 +34,17 @@ function haversineKm(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h))
 }
 
-function timeAgo(iso) {
-  if (!iso) return null
-  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
-}
-
 // Only write a new location if we've moved meaningfully or enough time passed —
 // keeps the widget "live" without hammering the database on every GPS tick.
 const MIN_MOVE_KM = 0.5
 const MIN_INTERVAL_MS = 5 * 60 * 1000
 
 export default function Dashboard() {
-  const { user, profile, couple, partnerUid, partnerName, partnerTimezone, logout } = useAuth()
+  const { user, profile, couple, partnerName, partnerTimezone, logout } = useAuth()
   const [editingDate, setEditingDate] = useState(false)
   const [dateInput, setDateInput] = useState(couple?.next_visit_date || '')
   const [editingSince, setEditingSince] = useState(false)
   const [sinceInput, setSinceInput] = useState(couple?.together_since || '')
-  const [mine, setMine] = useState(null)
-  const [theirs, setTheirs] = useState(null)
   const [now, setNow] = useState(new Date())
   const [pingSent, setPingSent] = useState(false)
   const lastWrite = useRef({ coords: null, at: 0 })
@@ -68,29 +57,6 @@ export default function Dashboard() {
     const t = setInterval(() => setNow(new Date()), 30000)
     return () => clearInterval(t)
   }, [])
-
-  // Load + subscribe to both partners' locations
-  async function loadLocations() {
-    if (!couple) return
-    const { data } = await supabase.from('locations').select('*').eq('couple_id', couple.id)
-    setMine(data?.find((r) => r.user_id === user.id) || null)
-    setTheirs(data?.find((r) => r.user_id === partnerUid) || null)
-  }
-
-  useEffect(() => {
-    if (!couple) return
-    loadLocations()
-    const channel = supabase
-      .channel(`dash-locations-${couple.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'locations', filter: `couple_id=eq.${couple.id}` },
-        loadLocations
-      )
-      .subscribe()
-    return () => supabase.removeChannel(channel)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [couple?.id, partnerUid])
 
   // Background location tracking — keeps the distance widget "live" while the
   // app is open, without needing to visit a separate screen or tap a button.
@@ -121,8 +87,6 @@ export default function Dashboard() {
     )
     return () => navigator.geolocation.clearWatch(watchId)
   }, [couple?.id, user?.id, profile?.display_name])
-
-  const distance = mine && theirs ? haversineKm(mine, theirs) : null
 
   const partnerTime = partnerTimezone
     ? now.toLocaleTimeString('en-US', {
@@ -193,28 +157,10 @@ export default function Dashboard() {
 
       <DailyQuestion />
 
+      <DistanceWidget />
+
       {/* Live widgets */}
       <div className="widget-grid">
-        <div className="widget-card">
-          <div className="widget-icon">📍</div>
-          {distance !== null ? (
-            <>
-              <div className="widget-value">{Math.round(distance).toLocaleString()} km</div>
-              <div className="widget-label">apart</div>
-              <div className="widget-sub">
-                you {timeAgo(mine?.updated_at)} · them {timeAgo(theirs?.updated_at) || '—'}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="widget-label">Waiting for location</div>
-              <Link to="/location" className="widget-cta">
-                Share yours →
-              </Link>
-            </>
-          )}
-        </div>
-
         <div className="widget-card">
           <div className="widget-icon">🕐</div>
           {partnerTime ? (
