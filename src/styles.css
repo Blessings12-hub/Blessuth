@@ -706,3 +706,167 @@ a {
   color: var(--ink);
 }
 
+/* ---- Logo ---- */
+.logo-lockup {
+  vertical-align: middle;
+}
+
+.logo-lockup.stacked {
+  flex-direction: column;
+  justify-content: center;
+}
+
+.logo-wordmark {
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 1.1rem;
+  letter-spacing: 0.2px;
+}
+
+.auth-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.auth-logo h1 {
+  font-size: 1.5rem;
+}
+
+.brand-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+/* ---- Couple avatars ---- */
+.dash-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.couple-avatars {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  color: white;
+  font-size: 1rem;
+  border: 2px solid var(--bg);
+}
+
+.avatar.mine {
+  background: var(--sunset);
+}
+
+.avatar.theirs {
+  background: var(--teal);
+  margin-left: -12px;
+}
+
+/* ---- Daily question ---- */
+.daily-card {
+  background: linear-gradient(135deg, #fff7ef, #fdece9);
+  border: 1px solid #f6d9c9;
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 20px;
+}
+
+.daily-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.daily-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--sunset);
+}
+
+.streak-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: white;
+  border-radius: 20px;
+  padding: 2px 10px;
+}
+
+.daily-question {
+  font-family: 'Fraunces', serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: var(--ink);
+}
+
+.daily-form {
+  display: flex;
+  gap: 8px;
+}
+
+.daily-form input {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.daily-form button {
+  background: var(--ink);
+  color: white;
+  border: none;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.daily-waiting {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.daily-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.daily-answer {
+  background: white;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+
+.daily-answer .label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.daily-answer.theirs {
+  border: 1px solid var(--teal);
+}
+
