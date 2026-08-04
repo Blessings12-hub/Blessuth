@@ -872,7 +872,8 @@ a {
 
 /* ---- Distance widget (Loverzz-style: avatar-to-avatar connection card) ---- */
 .distance-widget {
-  background: linear-gradient(150deg, var(--ink) 0%, #3a3f6d 55%, #4d3a6d 100%);
+  background: linear-gradient(160deg, #0c0c10 0%, #1a1a22 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--radius);
   padding: 22px 20px;
   margin-bottom: 20px;
@@ -931,7 +932,7 @@ a {
 
 .distance-path-icon {
   position: relative;
-  background: linear-gradient(150deg, var(--ink), #3a3f6d);
+  background: linear-gradient(160deg, #0c0c10, #1a1a22);
   padding: 0 6px;
   font-size: 0.95rem;
 }
