@@ -604,3 +604,105 @@ a {
     grid-template-columns: 1fr 1fr 1fr;
   }
 }
+
+/* ---- Dashboard widgets ---- */
+.widget-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.widget-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.widget-icon {
+  font-size: 1.4rem;
+  margin-bottom: 4px;
+}
+
+.widget-value {
+  font-family: 'Fraunces', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.widget-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.widget-sub {
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.widget-cta {
+  font-size: 0.8rem;
+  color: var(--sunset);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.ping-card {
+  background: #fdece9;
+  border-color: #f6c9c4;
+  justify-content: center;
+}
+
+.inline-edit-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inline-edit-form label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.inline-edit-form input {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.inline-edit-form .row {
+  display: flex;
+  gap: 8px;
+}
+
+.inline-edit-form .row button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  background: var(--sunset);
+  color: white;
+}
+
+.inline-edit-form .row button[type='button'] {
+  background: var(--bg);
+  color: var(--ink);
+}
+
