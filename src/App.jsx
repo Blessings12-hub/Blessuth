@@ -11,6 +11,7 @@ import Quizzes from './pages/Quizzes'
 import LocationPage from './pages/LocationPage'
 import Music from './pages/Music'
 import Notes from './pages/Notes'
+import Settings from './pages/Settings'
 
 function Gate({ children }) {
   const { user, profile, loading } = useAuth()
@@ -83,6 +84,14 @@ function AppRoutes() {
         element={
           <Gate>
             <Notes />
+          </Gate>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <Gate>
+            <Settings />
           </Gate>
         }
       />

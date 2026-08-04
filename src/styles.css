@@ -12,6 +12,52 @@
   --radius: 16px;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #f0f0f5;
+    --bg: #0c0c10;
+    --surface: #18181f;
+    --sunset: #f2837f;
+    --gold: #f4a259;
+    --teal: #45a3a3;
+    --muted: #9393a8;
+    --border: #2b2b34;
+  }
+
+  .note-card.mine {
+    background: #2b1e20;
+    border-color: #4a2c2c;
+  }
+
+  .ping-card {
+    background: #2b1e20;
+    border-color: #4a2c2c;
+  }
+
+  .daily-card {
+    background: linear-gradient(135deg, #201a16, #241a1a);
+    border-color: #3a2a26;
+  }
+
+  .daily-answer {
+    background: var(--surface);
+    color: var(--ink);
+  }
+
+  .streak-badge {
+    background: var(--surface);
+    color: var(--ink);
+  }
+
+  .settings-section.danger {
+    border-color: #5a2c2c;
+  }
+
+  .confirm-box {
+    background: #2b1e1e;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -970,5 +1016,140 @@ a {
   color: var(--gold);
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+/* ---- Header actions ---- */
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---- Birthday banner ---- */
+.birthday-banner {
+  background: linear-gradient(135deg, var(--gold), var(--sunset));
+  color: white;
+  font-weight: 600;
+  text-align: center;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+/* ---- Settings page ---- */
+.settings-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.settings-section.danger {
+  border-color: #f0b8b8;
+}
+
+.settings-section h3 {
+  margin: 0 0 6px;
+  font-family: 'Fraunces', serif;
+}
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 0.9rem;
+}
+
+.settings-row + .settings-row {
+  border-top: 1px solid var(--border);
+}
+
+.danger-btn {
+  background: #d64545;
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  width: 100%;
+}
+
+.confirm-box {
+  background: #fdeceb;
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+.confirm-box .row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.confirm-box .row button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+}
+
+.confirm-box .row button[type='button'] {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* ---- Location sharing toggle ---- */
+.sharing-toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.sharing-toggle-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.sharing-toggle-status {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.toggle-switch {
+  width: 48px;
+  height: 28px;
+  border-radius: 20px;
+  background: var(--border);
+  border: none;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.toggle-switch.on {
+  background: var(--teal);
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.2s;
+}
+
+.toggle-switch.on .toggle-knob {
+  transform: translateX(20px);
 }
 
