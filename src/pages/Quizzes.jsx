@@ -4,11 +4,11 @@ import { useAuth } from '../context/AuthContext'
 import QUIZ_SETS from '../data/quizSets'
 
 function scoreTier(pct) {
-  if (pct === 100) return { emoji: '🔥', text: "Soulmates! You two are perfectly in sync." }
-  if (pct >= 80) return { emoji: '💕', text: 'Wow, you really get each other.' }
-  if (pct >= 60) return { emoji: '😄', text: 'Pretty in sync, with a few surprises.' }
-  if (pct >= 40) return { emoji: '🤔', text: 'Interesting — you see things differently.' }
-  return { emoji: '😂', text: 'Total opposites. Never a dull moment!' }
+  if (pct === 100) return { text: 'Soulmates! You two are perfectly in sync.' }
+  if (pct >= 80) return { text: 'Wow, you really get each other.' }
+  if (pct >= 60) return { text: 'Pretty in sync, with a few surprises.' }
+  if (pct >= 40) return { text: 'Interesting — you see things differently.' }
+  return { text: 'Total opposites. Never a dull moment!' }
 }
 
 export default function Quizzes() {
@@ -96,12 +96,12 @@ export default function Quizzes() {
 
     return (
       <div className="screen with-nav">
-        <h2>💭 Couple Quizzes</h2>
+        <h2>Couple Quizzes</h2>
         <p className="subtitle">Pick a topic, answer separately, then see how in sync you are.</p>
 
         {overallPct !== null && (
           <div className="overall-compat-banner">
-            {scoreTier(overallPct).emoji} {overallPct}% overall compatibility across {doneStatuses.length}{' '}
+            {overallPct}% overall compatibility across {doneStatuses.length}{' '}
             quiz{doneStatuses.length === 1 ? '' : 'zes'}
           </div>
         )}
@@ -111,12 +111,11 @@ export default function Quizzes() {
             const status = statusFor(key)
             return (
               <button key={key} className="quiz-tile" onClick={() => openQuiz(key)}>
-                <div className="quiz-tile-icon">{set.icon}</div>
                 <div className="quiz-tile-title">{set.title}</div>
                 <div className="quiz-tile-count">{set.questions.length} questions</div>
                 {status.done ? (
                   <div className="quiz-tile-badge done">
-                    {scoreTier(status.pct).emoji} {status.pct}% match
+                    {status.pct}% match
                   </div>
                 ) : status.mine ? (
                   <div className="quiz-tile-badge waiting">Waiting for {partnerName || 'partner'}</div>
@@ -141,14 +140,11 @@ export default function Quizzes() {
       <button className="link-btn" onClick={() => setActiveQuiz(null)}>
         ← Back to topics
       </button>
-      <h2>
-        {set.icon} {set.title}
-      </h2>
+      <h2>{set.title}</h2>
 
       {showResults ? (
         <>
           <div className="quiz-score-card">
-            <div className="quiz-score-emoji">{scoreTier(status.pct).emoji}</div>
             <div className="quiz-score-pct">{status.pct}%</div>
             <div className="quiz-score-label">match</div>
             <p className="quiz-score-text">{scoreTier(status.pct).text}</p>
@@ -159,8 +155,8 @@ export default function Quizzes() {
               const matched = status.mine.answers[i] === status.theirs.answers[i]
               return (
                 <div key={i} className="quiz-result-row">
-                  <p className="quiz-question">
-                    {matched ? '✅' : '🔀'} {q.q}
+                  <p className={'quiz-question' + (matched ? ' matched' : ' different')}>
+                    {q.q}
                   </p>
                   <div className="quiz-answer-pair">
                     <div className="quiz-answer mine">
@@ -178,12 +174,12 @@ export default function Quizzes() {
           </div>
 
           <button className="link-btn" onClick={retake}>
-            🔁 Retake this quiz
+            Retake this quiz
           </button>
         </>
       ) : showWaiting ? (
         <p className="empty-state">
-          You've answered! Waiting for {partnerName || 'your partner'} to finish this one too. 💌
+          You've answered! Waiting for {partnerName || 'your partner'} to finish this one too.
         </p>
       ) : (
         <div className="quiz-taking">

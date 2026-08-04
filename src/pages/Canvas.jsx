@@ -118,7 +118,7 @@ export default function Canvas() {
 
   return (
     <div className="screen with-nav">
-      <h2>🎨 Shared Canvas</h2>
+      <h2>Shared Canvas</h2>
       <p className="subtitle">Draw together — updates live for both of you.</p>
 
       <canvas

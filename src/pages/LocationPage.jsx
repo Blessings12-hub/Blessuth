@@ -107,14 +107,14 @@ export default function LocationPage() {
 
   return (
     <div className="screen with-nav">
-      <h2>📍 Where you both are</h2>
+      <h2>Where you both are</h2>
       <p className="subtitle">Turn on live sharing so you can both see the distance between you.</p>
 
       <div className="sharing-toggle-row">
         <div>
           <div className="sharing-toggle-label">Share my live location</div>
           <div className="sharing-toggle-status">
-            {profile?.location_sharing_enabled ? '✓ You are sharing' : 'Off — turn on to start sharing'}
+            {profile?.location_sharing_enabled ? 'You are sharing' : 'Off — turn on to start sharing'}
           </div>
         </div>
         <button
@@ -130,7 +130,7 @@ export default function LocationPage() {
         <div>
           <div className="sharing-toggle-label">{partnerName || 'Partner'}'s sharing</div>
           <div className="sharing-toggle-status">
-            {partnerSharing ? '✓ They are sharing' : 'Off — waiting for them to turn it on'}
+            {partnerSharing ? 'They are sharing' : 'Off — waiting for them to turn it on'}
           </div>
         </div>
       </div>

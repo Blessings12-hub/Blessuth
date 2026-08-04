@@ -5,6 +5,20 @@ import { useAuth } from '../context/AuthContext'
 import Logo from '../components/Logo'
 import DailyQuestion from '../components/DailyQuestion'
 import DistanceWidget from '../components/DistanceWidget'
+import {
+  SettingsIcon,
+  LogoutIcon,
+  ClockIcon,
+  HeartIcon,
+  CakeIcon,
+  MessageIcon,
+  MailIcon,
+  CanvasIcon,
+  PhotoIcon,
+  QuizIcon,
+  MapPinIcon,
+  HeadphonesIcon,
+} from '../components/Icons'
 
 function daysUntil(dateStr) {
   if (!dateStr) return null
@@ -136,7 +150,7 @@ export default function Dashboard() {
     if (!couple) return
     await supabase.from('notes').insert({
       couple_id: couple.id,
-      text: '💭 Thinking of you right now',
+      text: 'Thinking of you right now',
       from_name: profile?.display_name || 'Me',
       from_uid: user.id,
     })
@@ -145,12 +159,12 @@ export default function Dashboard() {
   }
 
   const tiles = [
-    { to: '/canvas', label: 'Shared Canvas', icon: '🎨', desc: 'Doodle together, live' },
-    { to: '/photos', label: 'Photo Memories', icon: '📸', desc: 'Your shared album' },
-    { to: '/quizzes', label: 'Couple Quiz', icon: '💭', desc: 'How well do you know each other?' },
-    { to: '/location', label: 'Full Map', icon: '📍', desc: 'See it on the map' },
-    { to: '/music', label: 'Mood & Music', icon: '🎧', desc: "What you're feeling / playing" },
-    { to: '/notes', label: 'Love Notes', icon: '💌', desc: 'Little messages, anytime' },
+    { to: '/canvas', label: 'Shared Canvas', Icon: CanvasIcon, desc: 'Doodle together, live' },
+    { to: '/photos', label: 'Photo Memories', Icon: PhotoIcon, desc: 'Your shared album' },
+    { to: '/quizzes', label: 'Couple Quiz', Icon: QuizIcon, desc: 'How well do you know each other?' },
+    { to: '/location', label: 'Full Map', Icon: MapPinIcon, desc: 'See it on the map' },
+    { to: '/music', label: 'Mood & Music', Icon: HeadphonesIcon, desc: "What you're feeling / playing" },
+    { to: '/notes', label: 'Love Notes', Icon: MailIcon, desc: 'Little messages, anytime' },
   ]
 
   return (
@@ -166,7 +180,7 @@ export default function Dashboard() {
             <span className="avatar theirs">{(partnerName || '?')[0].toUpperCase()}</span>
           </div>
           <div>
-            <h1>Hi {profile?.display_name} 👋</h1>
+            <h1>Hi {profile?.display_name}</h1>
             <p className="subtitle">
               {partnerName ? `Connected with ${partnerName}` : 'Waiting to connect…'}
             </p>
@@ -174,10 +188,10 @@ export default function Dashboard() {
         </div>
         <div className="header-actions">
           <Link className="icon-btn" to="/settings" title="Settings">
-            ⚙️
+            <SettingsIcon size={18} />
           </Link>
           <button className="icon-btn" onClick={logout} title="Log out">
-            ⏻
+            <LogoutIcon size={18} />
           </button>
         </div>
       </header>
@@ -185,10 +199,10 @@ export default function Dashboard() {
       {(myBirthdayIn === 0 || partnerBirthdayIn === 0) && (
         <div className="birthday-banner">
           {myBirthdayIn === 0 && partnerBirthdayIn === 0
-            ? "🎉 It's both your birthdays today!"
+            ? "It's both your birthdays today!"
             : myBirthdayIn === 0
-            ? '🎉 Happy birthday to you!'
-            : `🎉 It's ${partnerName || 'your partner'}'s birthday today!`}
+            ? 'Happy birthday to you!'
+            : `It's ${partnerName || 'your partner'}'s birthday today!`}
         </div>
       )}
 
@@ -199,7 +213,7 @@ export default function Dashboard() {
       {/* Live widgets */}
       <div className="widget-grid">
         <div className="widget-card">
-          <div className="widget-icon">🕐</div>
+          <div className="widget-icon"><ClockIcon size={20} /></div>
           {partnerTime ? (
             <>
               <div className="widget-value">{partnerTime}</div>
@@ -211,7 +225,7 @@ export default function Dashboard() {
         </div>
 
         <div className="widget-card" onClick={() => setEditingSince(true)}>
-          <div className="widget-icon">💞</div>
+          <div className="widget-icon"><HeartIcon size={20} /></div>
           {togetherDays !== null ? (
             <>
               <div className="widget-value">{togetherDays}</div>
@@ -223,15 +237,15 @@ export default function Dashboard() {
         </div>
 
         <button className="widget-card ping-card" onClick={sendPing}>
-          <div className="widget-icon">{pingSent ? '💌' : '💭'}</div>
+          <div className="widget-icon">{pingSent ? <MailIcon size={20} /> : <MessageIcon size={20} />}</div>
           <div className="widget-label">{pingSent ? 'Sent!' : 'Thinking of you'}</div>
         </button>
 
         <div className="widget-card" onClick={() => setEditingBirthday(true)}>
-          <div className="widget-icon">🎂</div>
+          <div className="widget-icon"><CakeIcon size={20} /></div>
           {myBirthdayIn !== null ? (
             <>
-              <div className="widget-value">{myBirthdayIn === 0 ? '🎉' : myBirthdayIn}</div>
+              <div className="widget-value">{myBirthdayIn === 0 ? 'Today' : myBirthdayIn}</div>
               <div className="widget-label">{myBirthdayIn === 0 ? 'Today!' : 'until your birthday'}</div>
             </>
           ) : (
@@ -240,10 +254,10 @@ export default function Dashboard() {
         </div>
 
         <div className="widget-card">
-          <div className="widget-icon">🎂</div>
+          <div className="widget-icon"><CakeIcon size={20} /></div>
           {partnerBirthdayIn !== null ? (
             <>
-              <div className="widget-value">{partnerBirthdayIn === 0 ? '🎉' : partnerBirthdayIn}</div>
+              <div className="widget-value">{partnerBirthdayIn === 0 ? 'Today' : partnerBirthdayIn}</div>
               <div className="widget-label">
                 {partnerBirthdayIn === 0 ? "It's today!" : `until ${partnerName || 'their'}'s birthday`}
               </div>
@@ -300,7 +314,7 @@ export default function Dashboard() {
           <div onClick={() => setEditingDate(true)} className="countdown-display">
             {couple?.next_visit_date ? (
               <>
-                <div className="countdown-number">{days > 0 ? days : days === 0 ? '🎉' : '—'}</div>
+                <div className="countdown-number">{days > 0 ? days : days === 0 ? 'Today' : '—'}</div>
                 <div className="countdown-label">
                   {days > 0
                     ? `day${days === 1 ? '' : 's'} until you're together`
@@ -310,7 +324,7 @@ export default function Dashboard() {
                 </div>
               </>
             ) : (
-              <div className="countdown-label">Tap to set your next visit date 📅</div>
+              <div className="countdown-label">Tap to set your next visit date</div>
             )}
           </div>
         )}
@@ -319,7 +333,7 @@ export default function Dashboard() {
       <div className="tile-grid">
         {tiles.map((t) => (
           <Link to={t.to} key={t.to} className="tile">
-            <div className="tile-icon">{t.icon}</div>
+            <div className="tile-icon"><t.Icon size={22} /></div>
             <div className="tile-label">{t.label}</div>
             <div className="tile-desc">{t.desc}</div>
           </Link>

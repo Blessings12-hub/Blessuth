@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
+import { PlayIcon, PauseIcon } from '../components/Icons'
 
-const MOODS = ['😊', '😍', '😴', '😢', '😤', '🥳', '😌', '🤒', '😬', '🥰']
+const MOODS = ['Happy', 'In love', 'Sleepy', 'Sad', 'Frustrated', 'Celebrating', 'Content', 'Not feeling well', 'Anxious', 'Missing you']
 
 const GENRES = [
   'Pop',
@@ -51,7 +52,7 @@ export default function Music() {
   // Mood + now playing
   const [mine, setMine] = useState(null)
   const [theirs, setTheirs] = useState(null)
-  const [mood, setMood] = useState('😊')
+  const [mood, setMood] = useState('Happy')
 
   // Shared playlist
   const [playlist, setPlaylist] = useState([])
@@ -171,7 +172,7 @@ export default function Music() {
 
   return (
     <div className="screen with-nav">
-      <h2>🎧 Mood & Music</h2>
+      <h2>Mood & Music</h2>
       <p className="subtitle">Search real songs, play previews, and build a playlist together.</p>
 
       <audio ref={audioRef} onEnded={() => setPlayingId(null)} />
@@ -200,7 +201,10 @@ export default function Music() {
           {mine?.now_playing && (
             <div className="now-playing-chip" onClick={() => togglePlay(mine.now_playing)}>
               <img src={mine.now_playing.artwork} alt="" />
-              <span>{playingId === mine.now_playing.id ? '⏸' : '▶️'} {mine.now_playing.title}</span>
+              <span className="now-playing-label">
+                {playingId === mine.now_playing.id ? <PauseIcon size={14} /> : <PlayIcon size={14} />}
+                {mine.now_playing.title}
+              </span>
             </div>
           )}
         </div>
@@ -210,7 +214,10 @@ export default function Music() {
           {theirs?.now_playing && (
             <div className="now-playing-chip" onClick={() => togglePlay(theirs.now_playing)}>
               <img src={theirs.now_playing.artwork} alt="" />
-              <span>{playingId === theirs.now_playing.id ? '⏸' : '▶️'} {theirs.now_playing.title}</span>
+              <span className="now-playing-label">
+                {playingId === theirs.now_playing.id ? <PauseIcon size={14} /> : <PlayIcon size={14} />}
+                {theirs.now_playing.title}
+              </span>
             </div>
           )}
         </div>
@@ -257,7 +264,7 @@ export default function Music() {
         {results.map((track) => (
           <div key={track.id} className="track-row">
             <button className="track-play" onClick={() => togglePlay(track)} disabled={!track.previewUrl}>
-              {playingId === track.id ? '⏸' : '▶️'}
+              {playingId === track.id ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
             </button>
             {track.artwork && <img src={track.artwork} alt="" className="track-artwork" />}
             <div className="track-info">
@@ -286,7 +293,7 @@ export default function Music() {
               onClick={() => togglePlay({ id: track.id, previewUrl: track.preview_url })}
               disabled={!track.preview_url}
             >
-              {playingId === track.id ? '⏸' : '▶️'}
+              {playingId === track.id ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
             </button>
             {track.artwork && <img src={track.artwork} alt="" className="track-artwork" />}
             <div className="track-info">
@@ -303,7 +310,7 @@ export default function Music() {
           </div>
         ))}
         {playlist.length === 0 && (
-          <p className="empty-state">No songs yet — search above and add your first one 🎵</p>
+          <p className="empty-state">No songs yet — search above and add your first one</p>
         )}
       </div>
     </div>

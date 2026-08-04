@@ -67,7 +67,7 @@ export default function Photos() {
 
   return (
     <div className="screen with-nav">
-      <h2>📸 Photo Memories</h2>
+      <h2>Photo Memories</h2>
       <p className="subtitle">Your shared album, always in sync.</p>
 
       <div className="upload-box">

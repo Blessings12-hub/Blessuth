@@ -49,7 +49,7 @@ export default function Notes() {
 
   return (
     <div className="screen with-nav">
-      <h2>💌 Love Notes</h2>
+      <h2>Love Notes</h2>
       <p className="subtitle">Little messages for each other, anytime.</p>
 
       <form onSubmit={send} className="note-form">
@@ -79,7 +79,7 @@ export default function Notes() {
             </div>
           </div>
         ))}
-        {notes.length === 0 && <p className="empty-state">No notes yet — send the first one 💕</p>}
+        {notes.length === 0 && <p className="empty-state">No notes yet — send the first one</p>}
       </div>
     </div>
   )
