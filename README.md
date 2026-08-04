@@ -1,4 +1,4 @@
-# Blescy 💕
+# Blescy
 
 A private app for long-distance couples: shared canvas, photo memories, quizzes,
 mood/music sharing, location distance, and love notes.
