@@ -74,6 +74,9 @@ prefer not to use git commands.)
   free OpenStreetMap map and the distance between you. No API key needed.
 - **Mood/Music**: a simple emoji mood + "currently listening to" text field, shared live.
 - **Love Notes**: a lightweight shared message feed.
+- **Chat**: a real-time running conversation — day dividers, "Delivered"/"Seen" status,
+  and an unread badge on the Chat tab. If you set up your database before this update,
+  run `supabase-migration-v6.sql` once in the Supabase SQL Editor to add it.
 - **Next visit countdown**: tap the card on the home screen to set a date.
 - **Pairing**: handled by a Postgres function (`pair_with_code`) so both accounts get
   linked atomically and safely — a plain client update can't touch your partner's row.
