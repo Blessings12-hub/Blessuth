@@ -243,6 +243,10 @@ a {
   width: 40px;
   height: 40px;
   font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
 }
 
 .countdown-card {
@@ -320,6 +324,8 @@ a {
 
 .tile-icon {
   font-size: 1.6rem;
+  color: var(--sunset);
+  margin-bottom: 2px;
 }
 
 .tile-label {
@@ -359,6 +365,9 @@ a {
 
 .nav-icon {
   font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav-item.active {
@@ -494,10 +503,6 @@ a {
   gap: 4px;
 }
 
-.quiz-tile-icon {
-  font-size: 1.6rem;
-}
-
 .quiz-tile-title {
   font-weight: 600;
   font-size: 0.95rem;
@@ -597,10 +602,6 @@ a {
   margin-bottom: 20px;
 }
 
-.quiz-score-emoji {
-  font-size: 2rem;
-}
-
 .quiz-score-pct {
   font-family: 'Fraunces', serif;
   font-size: 2.4rem;
@@ -628,6 +629,16 @@ a {
 .quiz-question {
   font-weight: 600;
   margin: 0 0 8px;
+  padding-left: 10px;
+  border-left: 3px solid var(--border);
+}
+
+.quiz-question.matched {
+  border-left-color: var(--teal);
+}
+
+.quiz-question.different {
+  border-left-color: var(--gold);
 }
 
 .quiz-answer-pair {
@@ -704,11 +715,12 @@ a {
 }
 
 .mood-btn {
-  font-size: 1.4rem;
+  font-size: 0.85rem;
+  font-weight: 500;
   background: var(--surface);
   border: 2px solid var(--border);
   border-radius: 10px;
-  padding: 6px 8px;
+  padding: 7px 10px;
 }
 
 .mood-btn.active {
@@ -737,7 +749,9 @@ a {
 }
 
 .mood-emoji {
-  font-size: 2.2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--sunset);
 }
 
 .mood-song {
@@ -770,6 +784,16 @@ a {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.now-playing-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.now-playing-label svg {
+  flex-shrink: 0;
 }
 
 .section-title {
@@ -842,6 +866,9 @@ a {
   border-radius: 50%;
   flex-shrink: 0;
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .track-play:disabled {
@@ -972,6 +999,10 @@ a {
 .widget-icon {
   font-size: 1.4rem;
   margin-bottom: 4px;
+  color: var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .widget-value {
@@ -1276,6 +1307,9 @@ a {
   background: linear-gradient(160deg, #0c0c10, #1a1a22);
   padding: 0 6px;
   font-size: 0.95rem;
+  color: var(--gold, #e0a458);
+  display: inline-flex;
+  align-items: center;
 }
 
 .distance-widget-value {
