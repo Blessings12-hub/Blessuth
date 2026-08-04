@@ -1,14 +1,15 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { HomeIcon, CanvasIcon, PhotoIcon, QuizIcon, MapPinIcon, HeadphonesIcon, MailIcon } from './Icons'
 
 const items = [
-  { to: '/', label: 'Home', icon: '🏠' },
-  { to: '/canvas', label: 'Canvas', icon: '🎨' },
-  { to: '/photos', label: 'Photos', icon: '📸' },
-  { to: '/quizzes', label: 'Quiz', icon: '💭' },
-  { to: '/location', label: 'Map', icon: '📍' },
-  { to: '/music', label: 'Mood', icon: '🎧' },
-  { to: '/notes', label: 'Notes', icon: '💌' },
+  { to: '/', label: 'Home', Icon: HomeIcon },
+  { to: '/canvas', label: 'Canvas', Icon: CanvasIcon },
+  { to: '/photos', label: 'Photos', Icon: PhotoIcon },
+  { to: '/quizzes', label: 'Quiz', Icon: QuizIcon },
+  { to: '/location', label: 'Map', Icon: MapPinIcon },
+  { to: '/music', label: 'Mood', Icon: HeadphonesIcon },
+  { to: '/notes', label: 'Notes', Icon: MailIcon },
 ]
 
 export default function Nav() {
@@ -28,7 +29,9 @@ export default function Nav() {
             'nav-item' + (isActive ? ' active' : '')
           }
         >
-          <span className="nav-icon">{item.icon}</span>
+          <span className="nav-icon">
+            <item.Icon size={20} />
+          </span>
           <span className="nav-label">{item.label}</span>
         </NavLink>
       ))}

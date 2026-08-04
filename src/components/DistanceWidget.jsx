@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
+import { HeartIcon } from './Icons'
 
 function haversineKm(a, b) {
   const R = 6371
@@ -62,7 +63,7 @@ export default function DistanceWidget() {
         <span className="distance-node mine">{myInitial}</span>
         <span className="distance-path">
           <span className="distance-path-line" />
-          <span className="distance-path-icon">💗</span>
+          <span className="distance-path-icon"><HeartIcon size={16} /></span>
         </span>
         <span className="distance-node theirs">{theirInitial}</span>
       </div>

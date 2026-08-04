@@ -58,8 +58,8 @@ export default function DailyQuestion() {
   return (
     <div className="daily-card">
       <div className="daily-header">
-        <span className="daily-tag">✨ Today's question</span>
-        {couple?.streak_count > 0 && <span className="streak-badge">🔥 {couple.streak_count}</span>}
+        <span className="daily-tag">Today's question</span>
+        {couple?.streak_count > 0 && <span className="streak-badge">{couple.streak_count}-day streak</span>}
       </div>
       <p className="daily-question">{question}</p>
 
@@ -76,7 +76,7 @@ export default function DailyQuestion() {
         </div>
       ) : mine ? (
         <p className="daily-waiting">
-          Answered ✓ — waiting for {partnerName || 'your partner'} to answer too…
+          Answered — waiting for {partnerName || 'your partner'} to answer too…
         </p>
       ) : (
         <form onSubmit={submit} className="daily-form">
