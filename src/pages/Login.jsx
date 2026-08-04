@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import Logo from '../components/Logo'
 
 export default function Login() {
   const { login } = useAuth()
@@ -26,7 +27,10 @@ export default function Login() {
 
   return (
     <div className="auth-screen">
-      <h1>💕 Blescy</h1>
+      <div className="auth-logo">
+        <Logo size={64} stacked />
+        <h1>Blescy</h1>
+      </div>
       <p className="subtitle">Stay close, from anywhere.</p>
       <form onSubmit={handleSubmit} className="auth-form">
         <input

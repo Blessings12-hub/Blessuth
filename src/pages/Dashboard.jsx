@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
+import Logo from '../components/Logo'
+import DailyQuestion from '../components/DailyQuestion'
 
 function daysUntil(dateStr) {
   if (!dateStr) return null
@@ -167,17 +169,29 @@ export default function Dashboard() {
 
   return (
     <div className="screen with-nav">
+      <div className="brand-row">
+        <Logo size={26} withWordmark />
+      </div>
+
       <header className="dash-header">
-        <div>
-          <h1>Hi {profile?.display_name} 👋</h1>
-          <p className="subtitle">
-            {partnerName ? `Connected with ${partnerName}` : 'Waiting to connect…'}
-          </p>
+        <div className="dash-header-left">
+          <div className="couple-avatars">
+            <span className="avatar mine">{(profile?.display_name || '?')[0].toUpperCase()}</span>
+            <span className="avatar theirs">{(partnerName || '?')[0].toUpperCase()}</span>
+          </div>
+          <div>
+            <h1>Hi {profile?.display_name} 👋</h1>
+            <p className="subtitle">
+              {partnerName ? `Connected with ${partnerName}` : 'Waiting to connect…'}
+            </p>
+          </div>
         </div>
         <button className="icon-btn" onClick={logout} title="Log out">
           ⏻
         </button>
       </header>
+
+      <DailyQuestion />
 
       {/* Live widgets */}
       <div className="widget-grid">

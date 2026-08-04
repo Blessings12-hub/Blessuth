@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import Logo from '../components/Logo'
 
 export default function Pair() {
   const { profile, pairWithCode, logout } = useAuth()
@@ -27,7 +28,10 @@ export default function Pair() {
 
   return (
     <div className="auth-screen">
-      <h1>💞 Pair up</h1>
+      <div className="auth-logo">
+        <Logo size={56} stacked />
+        <h1>Pair up</h1>
+      </div>
       <p className="subtitle">Share your code with your partner, or enter theirs below.</p>
 
       <div className="pair-code-box">
