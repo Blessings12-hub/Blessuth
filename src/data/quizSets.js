@@ -1,6 +1,5 @@
 const QUIZ_SETS = {
   gettingToKnow: {
-    icon: '💫',
     title: 'Getting to Know You',
     questions: [
       { q: "What's my love language?", options: ['Words of affirmation', 'Quality time', 'Acts of service', 'Physical touch'] },
@@ -14,7 +13,6 @@ const QUIZ_SETS = {
     ],
   },
   futureDreams: {
-    icon: '🔮',
     title: 'Future Dreams',
     questions: [
       { q: 'Where do you picture us in 5 years?', options: ['Same city, different home', 'A new city together', 'Traveling the world', "Not sure yet, and that's ok"] },
@@ -28,7 +26,6 @@ const QUIZ_SETS = {
     ],
   },
   thisOrThat: {
-    icon: '⚖️',
     title: 'This or That',
     questions: [
       { q: 'Morning person or night owl?', options: ['Morning person', 'Night owl'] },
@@ -44,7 +41,6 @@ const QUIZ_SETS = {
     ],
   },
   deepTalks: {
-    icon: '🌙',
     title: 'Deep Talks',
     questions: [
       { q: 'What does being loved well look like to you?', options: ['Feeling heard', 'Feeling chosen', 'Feeling supported', 'Feeling safe'] },
@@ -58,11 +54,10 @@ const QUIZ_SETS = {
     ],
   },
   sillyFun: {
-    icon: '🎉',
     title: 'Silly & Fun',
     questions: [
       { q: 'If I were a superhero, my power would be?', options: ['Mind reading', 'Flying', 'Super strength', 'Invisibility'] },
-      { q: "What's my most-used emoji?", options: ['😂', '❤️', '🙄', '👀'] },
+      { q: "What's my most-used emoji?", options: ['Crying laughing', 'A heart', 'Eye-roll', 'Little peeking eyes'] },
       { q: 'If we were a sitcom duo, we\'d be?', options: ['The chaotic ones', 'The wholesome ones', 'The bickering-but-cute ones', 'The unexpectedly perfect match'] },
       { q: 'What snack do I always steal from you?', options: ['Fries', 'Popcorn', 'Chocolate', 'Chips'] },
       { q: 'My karaoke song would be?', options: ['A power ballad', 'A pop banger', 'An old classic', "I don't do karaoke"] },
@@ -72,7 +67,6 @@ const QUIZ_SETS = {
     ],
   },
   travel: {
-    icon: '✈️',
     title: 'Travel & Adventure',
     questions: [
       { q: "Dream destination we haven't been to?", options: ['Japan', 'Italy', 'New Zealand', "Somewhere we haven't picked yet"] },
@@ -86,7 +80,6 @@ const QUIZ_SETS = {
     ],
   },
   ambitions: {
-    icon: '💼',
     title: 'Ambitions & Career',
     questions: [
       { q: 'What motivates me most at work?', options: ['Growth', 'Recognition', 'Stability', 'Passion for the work'] },
@@ -98,7 +91,6 @@ const QUIZ_SETS = {
     ],
   },
   nostalgia: {
-    icon: '📼',
     title: 'Nostalgia',
     questions: [
       { q: 'What was my favorite show as a kid?', options: ['A cartoon', 'A sitcom', "Something I'm embarrassed to admit", "I don't remember"] },
