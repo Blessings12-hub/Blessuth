@@ -15,7 +15,7 @@ export default function Nav() {
   const { user, profile } = useAuth()
   const location = useLocation()
   const hideOn = ['/login', '/signup', '/pair']
-  if (!user || !profile?.coupleId || hideOn.includes(location.pathname)) {
+  if (!user || !profile?.couple_id || hideOn.includes(location.pathname)) {
     return null
   }
   return (
