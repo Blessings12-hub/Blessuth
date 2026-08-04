@@ -22,6 +22,7 @@ export function AuthProvider({ children }) {
   const [couple, setCouple] = useState(null)
   const [partnerName, setPartnerName] = useState(null)
   const [partnerTimezone, setPartnerTimezone] = useState(null)
+  const [partnerBirthday, setPartnerBirthday] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const user = session?.user || null
@@ -38,6 +39,7 @@ export function AuthProvider({ children }) {
         setCouple(null)
         setPartnerName(null)
         setPartnerTimezone(null)
+        setPartnerBirthday(null)
         setLoading(false)
       }
     })
@@ -109,17 +111,19 @@ export function AuthProvider({ children }) {
     if (!partnerUid) {
       setPartnerName(null)
       setPartnerTimezone(null)
+      setPartnerBirthday(null)
       return
     }
     let channel
     async function load() {
       const { data } = await supabase
         .from('profiles')
-        .select('display_name, timezone')
+        .select('display_name, timezone, birthday')
         .eq('id', partnerUid)
         .single()
       setPartnerName(data?.display_name || null)
       setPartnerTimezone(data?.timezone || null)
+      setPartnerBirthday(data?.birthday || null)
     }
     load()
     channel = supabase
@@ -164,6 +168,11 @@ export function AuthProvider({ children }) {
     if (error) throw new Error(error.message)
   }
 
+  async function unpairCouple() {
+    const { error } = await supabase.rpc('unpair_couple')
+    if (error) throw new Error(error.message)
+  }
+
   const value = {
     user,
     profile,
@@ -171,11 +180,13 @@ export function AuthProvider({ children }) {
     partnerUid,
     partnerName,
     partnerTimezone,
+    partnerBirthday,
     loading,
     signup,
     login,
     logout,
     pairWithCode,
+    unpairCouple,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
