@@ -870,3 +870,104 @@ a {
   border: 1px solid var(--teal);
 }
 
+/* ---- Distance widget (Loverzz-style: avatar-to-avatar connection card) ---- */
+.distance-widget {
+  background: linear-gradient(150deg, var(--ink) 0%, #3a3f6d 55%, #4d3a6d 100%);
+  border-radius: var(--radius);
+  padding: 22px 20px;
+  margin-bottom: 20px;
+  text-align: center;
+  color: white;
+}
+
+.distance-widget-track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.distance-node {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: white;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+}
+
+.distance-node.mine {
+  background: var(--sunset);
+}
+
+.distance-node.theirs {
+  background: var(--teal);
+}
+
+.distance-path {
+  position: relative;
+  flex: 1;
+  max-width: 140px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.distance-path-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 2px dashed rgba(255, 255, 255, 0.4);
+}
+
+.distance-path-icon {
+  position: relative;
+  background: linear-gradient(150deg, var(--ink), #3a3f6d);
+  padding: 0 6px;
+  font-size: 0.95rem;
+}
+
+.distance-widget-value {
+  font-family: 'Fraunces', serif;
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1;
+}
+
+.distance-widget-value.muted {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.6rem;
+}
+
+.distance-widget-value .unit {
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #d8d9ec;
+  margin-left: 8px;
+}
+
+.distance-widget-meta {
+  font-size: 0.75rem;
+  color: #b6b8d6;
+  margin-top: 8px;
+}
+
+.distance-widget-cta {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--gold);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
