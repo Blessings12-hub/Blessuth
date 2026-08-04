@@ -16,7 +16,7 @@ function Gate({ children }) {
   const { user, profile, loading } = useAuth()
   if (loading) return <div className="center-screen">Loading…</div>
   if (!user) return <Navigate to="/login" replace />
-  if (!profile?.coupleId) return <Navigate to="/pair" replace />
+  if (!profile?.couple_id) return <Navigate to="/pair" replace />
   return children
 }
 
