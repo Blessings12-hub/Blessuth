@@ -9,7 +9,7 @@ export default function Pair() {
   const [busy, setBusy] = useState(false)
   const navigate = useNavigate()
 
-  if (profile?.coupleId) return <Navigate to="/" replace />
+  if (profile?.couple_id) return <Navigate to="/" replace />
 
   async function handleSubmit(e) {
     e.preventDefault()
