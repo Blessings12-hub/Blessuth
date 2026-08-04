@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [couple, setCouple] = useState(null)
   const [partnerName, setPartnerName] = useState(null)
+  const [partnerTimezone, setPartnerTimezone] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const user = session?.user || null
@@ -36,6 +37,7 @@ export function AuthProvider({ children }) {
         setProfile(null)
         setCouple(null)
         setPartnerName(null)
+        setPartnerTimezone(null)
         setLoading(false)
       }
     })
@@ -61,6 +63,15 @@ export function AuthProvider({ children }) {
       .subscribe()
     return () => supabase.removeChannel(channel)
   }, [user?.id])
+
+  // Keep my timezone up to date (used to show my local time to my partner)
+  useEffect(() => {
+    if (!user || !profile) return
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (profile.timezone !== tz) {
+      supabase.from('profiles').update({ timezone: tz }).eq('id', user.id)
+    }
+  }, [user?.id, profile?.timezone])
 
   useEffect(() => {
     if (!profile?.couple_id) {
@@ -97,14 +108,29 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!partnerUid) {
       setPartnerName(null)
+      setPartnerTimezone(null)
       return
     }
-    supabase
-      .from('profiles')
-      .select('display_name')
-      .eq('id', partnerUid)
-      .single()
-      .then(({ data }) => setPartnerName(data?.display_name || null))
+    let channel
+    async function load() {
+      const { data } = await supabase
+        .from('profiles')
+        .select('display_name, timezone')
+        .eq('id', partnerUid)
+        .single()
+      setPartnerName(data?.display_name || null)
+      setPartnerTimezone(data?.timezone || null)
+    }
+    load()
+    channel = supabase
+      .channel(`partner-profile-${partnerUid}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${partnerUid}` },
+        load
+      )
+      .subscribe()
+    return () => supabase.removeChannel(channel)
   }, [partnerUid])
 
   async function signup(email, password, displayName) {
@@ -117,6 +143,7 @@ export function AuthProvider({ children }) {
       email,
       display_name: displayName || email.split('@')[0],
       pair_code: pairCode,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     })
     if (profileError) throw profileError
     return data.user
@@ -143,6 +170,7 @@ export function AuthProvider({ children }) {
     couple,
     partnerUid,
     partnerName,
+    partnerTimezone,
     loading,
     signup,
     login,
