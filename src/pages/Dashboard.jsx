@@ -22,6 +22,16 @@ function daysSince(dateStr) {
   return Math.floor((now - start) / (1000 * 60 * 60 * 24))
 }
 
+function daysUntilBirthday(dateStr) {
+  if (!dateStr) return null
+  const bday = new Date(dateStr + 'T00:00:00')
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  let next = new Date(now.getFullYear(), bday.getMonth(), bday.getDate())
+  if (next < now) next = new Date(now.getFullYear() + 1, bday.getMonth(), bday.getDate())
+  return Math.round((next - now) / (1000 * 60 * 60 * 24))
+}
+
 function haversineKm(a, b) {
   const R = 6371
   const dLat = ((b.lat - a.lat) * Math.PI) / 180
@@ -40,17 +50,21 @@ const MIN_MOVE_KM = 0.5
 const MIN_INTERVAL_MS = 5 * 60 * 1000
 
 export default function Dashboard() {
-  const { user, profile, couple, partnerName, partnerTimezone, logout } = useAuth()
+  const { user, profile, couple, partnerName, partnerTimezone, partnerBirthday, logout } = useAuth()
   const [editingDate, setEditingDate] = useState(false)
   const [dateInput, setDateInput] = useState(couple?.next_visit_date || '')
   const [editingSince, setEditingSince] = useState(false)
   const [sinceInput, setSinceInput] = useState(couple?.together_since || '')
+  const [editingBirthday, setEditingBirthday] = useState(false)
+  const [birthdayInput, setBirthdayInput] = useState(profile?.birthday || '')
   const [now, setNow] = useState(new Date())
   const [pingSent, setPingSent] = useState(false)
   const lastWrite = useRef({ coords: null, at: 0 })
 
   const days = daysUntil(couple?.next_visit_date)
   const togetherDays = daysSince(couple?.together_since)
+  const myBirthdayIn = daysUntilBirthday(profile?.birthday)
+  const partnerBirthdayIn = daysUntilBirthday(partnerBirthday)
 
   // Live-updating clock (for partner's local time)
   useEffect(() => {
@@ -58,10 +72,11 @@ export default function Dashboard() {
     return () => clearInterval(t)
   }, [])
 
-  // Background location tracking — keeps the distance widget "live" while the
-  // app is open, without needing to visit a separate screen or tap a button.
+  // Background location tracking — only runs once the user has explicitly
+  // enabled location sharing (see the Map tab), and keeps the distance
+  // widget "live" while the app is open.
   useEffect(() => {
-    if (!couple || !navigator.geolocation) return
+    if (!couple || !profile?.location_sharing_enabled || !navigator.geolocation) return
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude }
@@ -86,7 +101,7 @@ export default function Dashboard() {
       { enableHighAccuracy: false, maximumAge: 60000 }
     )
     return () => navigator.geolocation.clearWatch(watchId)
-  }, [couple?.id, user?.id, profile?.display_name])
+  }, [couple?.id, user?.id, profile?.display_name, profile?.location_sharing_enabled])
 
   const partnerTime = partnerTimezone
     ? now.toLocaleTimeString('en-US', {
@@ -108,6 +123,13 @@ export default function Dashboard() {
     if (!couple) return
     await supabase.from('couples').update({ together_since: sinceInput || null }).eq('id', couple.id)
     setEditingSince(false)
+  }
+
+  async function saveBirthday(e) {
+    e.preventDefault()
+    if (!user) return
+    await supabase.from('profiles').update({ birthday: birthdayInput || null }).eq('id', user.id)
+    setEditingBirthday(false)
   }
 
   async function sendPing() {
@@ -150,10 +172,25 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
-        <button className="icon-btn" onClick={logout} title="Log out">
-          ⏻
-        </button>
+        <div className="header-actions">
+          <Link className="icon-btn" to="/settings" title="Settings">
+            ⚙️
+          </Link>
+          <button className="icon-btn" onClick={logout} title="Log out">
+            ⏻
+          </button>
+        </div>
       </header>
+
+      {(myBirthdayIn === 0 || partnerBirthdayIn === 0) && (
+        <div className="birthday-banner">
+          {myBirthdayIn === 0 && partnerBirthdayIn === 0
+            ? "🎉 It's both your birthdays today!"
+            : myBirthdayIn === 0
+            ? '🎉 Happy birthday to you!'
+            : `🎉 It's ${partnerName || 'your partner'}'s birthday today!`}
+        </div>
+      )}
 
       <DailyQuestion />
 
@@ -189,7 +226,50 @@ export default function Dashboard() {
           <div className="widget-icon">{pingSent ? '💌' : '💭'}</div>
           <div className="widget-label">{pingSent ? 'Sent!' : 'Thinking of you'}</div>
         </button>
+
+        <div className="widget-card" onClick={() => setEditingBirthday(true)}>
+          <div className="widget-icon">🎂</div>
+          {myBirthdayIn !== null ? (
+            <>
+              <div className="widget-value">{myBirthdayIn === 0 ? '🎉' : myBirthdayIn}</div>
+              <div className="widget-label">{myBirthdayIn === 0 ? 'Today!' : 'until your birthday'}</div>
+            </>
+          ) : (
+            <div className="widget-label">Tap to add your birthday</div>
+          )}
+        </div>
+
+        <div className="widget-card">
+          <div className="widget-icon">🎂</div>
+          {partnerBirthdayIn !== null ? (
+            <>
+              <div className="widget-value">{partnerBirthdayIn === 0 ? '🎉' : partnerBirthdayIn}</div>
+              <div className="widget-label">
+                {partnerBirthdayIn === 0 ? "It's today!" : `until ${partnerName || 'their'}'s birthday`}
+              </div>
+            </>
+          ) : (
+            <div className="widget-label">{partnerName || 'Partner'} hasn't added a birthday yet</div>
+          )}
+        </div>
       </div>
+
+      {editingBirthday && (
+        <form onSubmit={saveBirthday} className="inline-edit-form">
+          <label>Your birthday</label>
+          <input
+            type="date"
+            value={birthdayInput}
+            onChange={(e) => setBirthdayInput(e.target.value)}
+          />
+          <div className="row">
+            <button type="submit">Save</button>
+            <button type="button" onClick={() => setEditingBirthday(false)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
 
       {editingSince && (
         <form onSubmit={saveSince} className="inline-edit-form">
