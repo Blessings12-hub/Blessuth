@@ -159,6 +159,7 @@ export default function Dashboard() {
   }
 
   const tiles = [
+    { to: '/chat', label: 'Chat', Icon: MessageIcon, desc: 'A running conversation' },
     { to: '/canvas', label: 'Shared Canvas', Icon: CanvasIcon, desc: 'Doodle together, live' },
     { to: '/photos', label: 'Photo Memories', Icon: PhotoIcon, desc: 'Your shared album' },
     { to: '/quizzes', label: 'Couple Quiz', Icon: QuizIcon, desc: 'How well do you know each other?' },
