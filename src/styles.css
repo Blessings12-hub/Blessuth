@@ -910,9 +910,17 @@ a {
 
 .genre-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
   gap: 6px;
-  margin-bottom: 16px;
+  margin: 0 -20px 16px;
+  padding: 0 20px 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.genre-chips::-webkit-scrollbar {
+  display: none;
 }
 
 .genre-chip {
@@ -922,6 +930,9 @@ a {
   padding: 6px 12px;
   font-size: 0.8rem;
   color: var(--ink);
+  flex-shrink: 0;
+  white-space: nowrap;
+  scroll-snap-align: start;
 }
 
 .track-list {
@@ -1807,4 +1818,89 @@ a {
   .quiz-answer.theirs.matched {
     background: #1a2e28;
   }
+}
+
+/* ---- Spotify ---- */
+.spotify-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(135deg, #1a3a2e, #14201c);
+  color: white;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.spotify-banner strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.spotify-banner p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.spotify-connect-link {
+  flex-shrink: 0;
+  background: #1db954;
+  color: white;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 8px 16px;
+  border-radius: 999px;
+  text-decoration: none;
+}
+
+.sync-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+}
+
+.sync-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.sync-banner-actions button[type='button']:first-child {
+  background: var(--teal);
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.small-note {
+  font-size: 0.78rem;
+  margin-top: 10px;
+}
+
+.inline-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inline-edit-row input {
+  width: 130px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 0.9rem;
 }
