@@ -18,8 +18,10 @@ Supabase's free tier, no credit card required).
 2. Open `supabase.sql` from this project, copy the whole file, paste it in, and click **Run**.
    This creates all the tables, security rules, and a `pair_with_code` function in one go.
 3. Then run each `supabase-migration-vN.sql` file in this project, in order (v2, v3, v4,
-   v5, v6, v7, v8), the same way — new query, paste, Run. Each one adds a feature that
-   shipped after the original `supabase.sql`.
+   v5, v6, v7, v8, v9), the same way — new query, paste, Run. Each one adds a feature that
+   shipped after the original `supabase.sql`. `v9` also creates the `avatars` storage
+   bucket for profile photos automatically — no separate dashboard step needed for that
+   one, unlike the `photos` bucket below.
 4. Go to **Storage** (left sidebar) → **New bucket** → name it exactly `photos` →
    leave "Public bucket" **unchecked** → Create.
 5. For frictionless testing, go to **Authentication → Providers → Email** and turn
@@ -178,15 +180,21 @@ with your own account. Do this on both phones, each with their own account.
 1. Both partners sign up with email + password.
 2. Each of you lands on a **Pair up** screen showing a 6-character code.
 3. One of you enters the *other's* code to link your accounts.
-4. You're in — explore the tabs at the bottom: Canvas, Photos, Chat, Quiz, Map, Mood, Notes.
+4. You're in — explore the tabs at the bottom: Canvas, Photos, Chat, Quiz, Distance, Mood, Notes.
 
 ## Notes on the features
 
 - **Canvas**: real-time — strokes sync between both of you via Supabase Realtime.
 - **Photos**: uploads go to Supabase Storage, shown in a shared gallery.
-- **Quizzes**: three built-in quiz sets; each answers privately, results reveal once both are in.
-- **Location**: uses your phone's GPS (you tap "Share my location"), shows both pins on a
-  free OpenStreetMap map and the distance between you. No API key needed.
+- **Quizzes**: 12 built-in topics (getting to know you, future dreams, long distance life,
+  food, movies, and more); each answers privately, results reveal once both are in.
+- **Location**: uses your phone's GPS (you tap "Share my location") and shows the live
+  distance between you — no map, just the number, updating as you both move. A true
+  always-on Home Screen widget (like an iOS WidgetKit widget) isn't something a web app
+  can do — that needs a native app. This is the closest equivalent: open the app and the
+  distance is right there, live, no page reload needed.
+- **Profile photos**: tap your avatar in Settings to upload one — resized and compressed
+  in the browser before it uploads, so it stays small either way.
 - **Mood/Music**: a mood status shared live, song search, and a shared playlist.
   Search gives 30-second previews by default, or full playback plus a synced
   "Listen together" once you connect Spotify (see step 7 above; needs
