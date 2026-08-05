@@ -23,6 +23,7 @@ export function AuthProvider({ children }) {
   const [partnerName, setPartnerName] = useState(null)
   const [partnerTimezone, setPartnerTimezone] = useState(null)
   const [partnerBirthday, setPartnerBirthday] = useState(null)
+  const [partnerAvatarUrl, setPartnerAvatarUrl] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const user = session?.user || null
@@ -112,18 +113,20 @@ export function AuthProvider({ children }) {
       setPartnerName(null)
       setPartnerTimezone(null)
       setPartnerBirthday(null)
+      setPartnerAvatarUrl(null)
       return
     }
     let channel
     async function load() {
       const { data } = await supabase
         .from('profiles')
-        .select('display_name, timezone, birthday')
+        .select('display_name, timezone, birthday, avatar_url')
         .eq('id', partnerUid)
         .single()
       setPartnerName(data?.display_name || null)
       setPartnerTimezone(data?.timezone || null)
       setPartnerBirthday(data?.birthday || null)
+      setPartnerAvatarUrl(data?.avatar_url || null)
     }
     load()
     channel = supabase
@@ -181,6 +184,7 @@ export function AuthProvider({ children }) {
     partnerName,
     partnerTimezone,
     partnerBirthday,
+    partnerAvatarUrl,
     loading,
     signup,
     login,
