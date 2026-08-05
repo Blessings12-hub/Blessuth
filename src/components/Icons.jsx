@@ -148,6 +148,24 @@ export function PauseIcon(props) {
   )
 }
 
+export function LockIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" width={props.size || 20} height={props.size || 20} {...base} className={props.className}>
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V7.5a4 4 0 0 1 8 0V11" />
+    </svg>
+  )
+}
+
+export function UserIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" width={props.size || 20} height={props.size || 20} {...base} className={props.className}>
+      <circle cx="12" cy="8.5" r="3.5" />
+      <path d="M4.5 20c1.2-3.8 4.2-6 7.5-6s6.3 2.2 7.5 6" />
+    </svg>
+  )
+}
+
 export function CalendarIcon(props) {
   return (
     <svg viewBox="0 0 24 24" width={props.size || 20} height={props.size || 20} {...base} className={props.className}>
