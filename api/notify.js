@@ -1,9 +1,9 @@
 // Vercel Serverless Function: /api/notify
 //
-// Triggered by a Supabase Database Webhook on INSERT into `messages` or
-// `notes`. Looks up the recipient's push subscription(s) and sends a Web
-// Push notification. Runs entirely server-side — the service role key and
-// VAPID private key never reach the browser.
+// Triggered by a Supabase Database Webhook on INSERT into `messages`,
+// `notes`, or `daily_answers`. Looks up the recipient's push subscription(s)
+// and sends a Web Push notification. Runs entirely server-side — the
+// service role key and VAPID private key never reach the browser.
 //
 // Required environment variables (set in Vercel → Project → Settings →
 // Environment Variables, NOT prefixed with VITE_ so they stay server-only):
@@ -17,7 +17,9 @@
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
 
-function buildNotification(table, record) {
+// `supabase` is only used by the daily_answers case, to look up the
+// sender's display name (that table doesn't store it on the row itself).
+async function buildNotification(table, record, supabase) {
   if (table === 'messages') {
     return {
       title: record.sender_name || 'New message',
@@ -36,6 +38,20 @@ function buildNotification(table, record) {
       coupleId: record.couple_id,
     }
   }
+  if (table === 'daily_answers') {
+    const { data } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', record.user_id)
+      .maybeSingle()
+    return {
+      title: data?.display_name ? `${data.display_name} answered today's question` : "Today's question was answered",
+      body: 'Tap to answer yours and see what they said.',
+      url: '/#/',
+      senderId: record.user_id,
+      coupleId: record.couple_id,
+    }
+  }
   return null
 }
 
@@ -51,12 +67,6 @@ export default async function handler(req, res) {
   }
 
   const { table, record } = req.body || {}
-  const notification = record ? buildNotification(table, record) : null
-
-  if (!notification || !notification.senderId || !notification.coupleId) {
-    res.status(200).json({ skipped: true })
-    return
-  }
 
   webpush.setVapidDetails(
     process.env.VAPID_SUBJECT || 'mailto:hello@example.com',
@@ -65,6 +75,13 @@ export default async function handler(req, res) {
   )
 
   const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
+  const notification = record ? await buildNotification(table, record, supabase) : null
+
+  if (!notification || !notification.senderId || !notification.coupleId) {
+    res.status(200).json({ skipped: true })
+    return
+  }
 
   const { data: subs, error } = await supabase
     .from('push_subscriptions')
