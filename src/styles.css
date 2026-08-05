@@ -114,7 +114,21 @@ h2 {
 
 button {
   font-family: inherit;
+  color: inherit;
   cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  color: var(--ink);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
 
 .app-shell {
@@ -160,8 +174,7 @@ button {
 
 .auth-form button,
 .countdown-form button,
-.quiz-form button,
-.mood-form button {
+.quiz-form button {
   background: var(--sunset);
   color: white;
   border: none;
@@ -737,10 +750,18 @@ a {
   border: 2px solid var(--border);
   border-radius: 10px;
   padding: 7px 10px;
+  color: var(--ink);
 }
 
 .mood-btn.active {
   border-color: var(--sunset);
+}
+
+.mood-saved-hint {
+  color: var(--teal);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 8px 0 0;
 }
 
 .mood-cards {
