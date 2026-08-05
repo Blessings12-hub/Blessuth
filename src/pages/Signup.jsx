@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Logo from '../components/Logo'
+import { MailIcon, LockIcon, UserIcon } from '../components/Icons'
 
 export default function Signup() {
   const { signup } = useAuth()
@@ -27,42 +28,58 @@ export default function Signup() {
   }
 
   return (
-    <div className="auth-screen">
-      <div className="auth-logo">
-        <Logo size={64} stacked />
+    <div className="auth-page">
+      <div className="auth-hero">
+        <Logo size={68} stacked />
         <h1>Blescy</h1>
+        <p>Two phones, one relationship.</p>
       </div>
-      <p className="subtitle">Create your account</p>
-      <form onSubmit={handleSubmit} className="auth-form">
-        <input
-          type="text"
-          placeholder="Your name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password (6+ characters)"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={6}
-        />
-        {error && <p className="error">{error}</p>}
-        <button type="submit" disabled={busy}>
-          {busy ? 'Creating…' : 'Sign up'}
-        </button>
-      </form>
-      <p>
-        Already have an account? <Link to="/login">Log in</Link>
-      </p>
+
+      <div className="auth-card">
+        <h2 className="auth-card-title">Create your account</h2>
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="auth-input-group">
+            <UserIcon size={18} className="auth-input-icon" />
+            <input
+              type="text"
+              placeholder="Your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="name"
+            />
+          </div>
+          <div className="auth-input-group">
+            <MailIcon size={18} className="auth-input-icon" />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+            />
+          </div>
+          <div className="auth-input-group">
+            <LockIcon size={18} className="auth-input-icon" />
+            <input
+              type="password"
+              placeholder="Password (6+ characters)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              required
+              minLength={6}
+            />
+          </div>
+          {error && <p className="error">{error}</p>}
+          <button type="submit" disabled={busy}>
+            {busy ? 'Creating…' : 'Sign up'}
+          </button>
+        </form>
+        <p className="auth-switch">
+          Already have an account? <Link to="/login">Log in</Link>
+        </p>
+      </div>
     </div>
   )
 }

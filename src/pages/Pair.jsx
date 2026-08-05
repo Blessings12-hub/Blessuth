@@ -27,35 +27,39 @@ export default function Pair() {
   }
 
   return (
-    <div className="auth-screen">
-      <div className="auth-logo">
-        <Logo size={56} stacked />
+    <div className="auth-page">
+      <div className="auth-hero">
+        <Logo size={68} stacked />
         <h1>Pair up</h1>
-      </div>
-      <p className="subtitle">Share your code with your partner, or enter theirs below.</p>
-
-      <div className="pair-code-box">
-        <p>Your code</p>
-        <div className="pair-code">{profile?.pair_code || '……'}</div>
+        <p>Share your code with your partner, or enter theirs below.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="auth-form">
-        <input
-          type="text"
-          placeholder="Enter partner's code"
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          maxLength={6}
-          required
-        />
-        {error && <p className="error">{error}</p>}
-        <button type="submit" disabled={busy}>
-          {busy ? 'Pairing…' : 'Pair up'}
+      <div className="auth-card">
+        <div className="pair-code-box">
+          <p>Your code</p>
+          <div className="pair-code">{profile?.pair_code || '……'}</div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="auth-input-group no-icon">
+            <input
+              type="text"
+              placeholder="Enter partner's code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              maxLength={6}
+              required
+            />
+          </div>
+          {error && <p className="error">{error}</p>}
+          <button type="submit" disabled={busy}>
+            {busy ? 'Pairing…' : 'Pair up'}
+          </button>
+        </form>
+        <button className="link-btn auth-switch-btn" onClick={logout}>
+          Log out
         </button>
-      </form>
-      <button className="link-btn" onClick={logout}>
-        Log out
-      </button>
+      </div>
     </div>
   )
 }
