@@ -23,55 +23,6 @@
     --muted: #9393a8;
     --border: #2b2b34;
   }
-
-  .note-card.mine {
-    background: #2b1e20;
-    border-color: #4a2c2c;
-  }
-
-  .ping-card {
-    background: #2b1e20;
-    border-color: #4a2c2c;
-  }
-
-  .daily-card {
-    background: linear-gradient(135deg, #201a16, #241a1a);
-    border-color: #3a2a26;
-  }
-
-  .daily-answer {
-    background: var(--surface);
-    color: var(--ink);
-  }
-
-  .streak-badge {
-    background: var(--surface);
-    color: var(--ink);
-  }
-
-  .settings-section.danger {
-    border-color: #5a2c2c;
-  }
-
-  .confirm-box {
-    background: #2b1e1e;
-  }
-
-  .quiz-tile-badge.done {
-    background: #1a2e28;
-  }
-
-  .quiz-tile-badge.waiting {
-    background: #2e2618;
-  }
-
-  .quiz-option.selected {
-    background: #2b1e20;
-  }
-
-  .quiz-answer.theirs.matched {
-    background: #1a2e28;
-  }
 }
 
 * {
@@ -153,15 +104,111 @@ textarea::placeholder {
   text-align: center;
 }
 
+.auth-page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-hero {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  color: white;
+  padding: 56px 24px 40px;
+  background: linear-gradient(160deg, #6f3b57 0%, #ef6f6c 55%, #f4a259 100%);
+}
+
+.auth-hero h1 {
+  font-size: 1.8rem;
+  margin: 4px 0 0;
+  color: white;
+}
+
+.auth-hero p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.auth-card {
+  flex: 1;
+  background: var(--surface);
+  border-radius: 28px 28px 0 0;
+  margin-top: -24px;
+  padding: 32px 24px 40px;
+  max-width: 440px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.auth-card-title {
+  text-align: center;
+  margin: 0 0 20px;
+}
+
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin: 20px 0;
+  gap: 14px;
+  margin: 4px 0;
   text-align: left;
 }
 
-.auth-form input,
+.auth-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-icon {
+  position: absolute;
+  left: 16px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.auth-input-group input {
+  width: 100%;
+  padding: 15px 18px 15px 46px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 1rem;
+}
+
+.auth-input-group.no-icon input {
+  padding-left: 18px;
+}
+
+.auth-form button {
+  background: linear-gradient(135deg, var(--sunset), var(--gold));
+  color: white;
+  border: none;
+  padding: 16px;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.auth-switch {
+  text-align: center;
+  margin: 20px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.auth-switch-btn {
+  display: block;
+  margin: 20px auto 0;
+}
+
 .mood-form input,
 .note-form input,
 .upload-box input[type='text'] {
@@ -172,7 +219,6 @@ textarea::placeholder {
   font-size: 1rem;
 }
 
-.auth-form button,
 .countdown-form button,
 .quiz-form button {
   background: var(--sunset);
@@ -215,7 +261,8 @@ a {
 }
 
 .pair-code-box {
-  background: var(--surface);
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px;
   margin: 20px 0;
@@ -1133,18 +1180,6 @@ a {
   letter-spacing: 0.2px;
 }
 
-.auth-logo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 4px;
-}
-
-.auth-logo h1 {
-  font-size: 1.5rem;
-}
-
 .brand-row {
   display: flex;
   justify-content: center;
@@ -1714,4 +1749,62 @@ a {
   background: var(--sunset);
   color: white;
   border-color: transparent;
+}
+
+/* ---- Dark-mode component overrides ----
+   These must stay below every base (light-mode) rule they touch — CSS
+   resolves ties in specificity by source order, so a dark-mode override
+   placed earlier in the file gets beaten by an unconditional rule for the
+   same class declared later on, even though the media query still matches.
+   (This is what caused the daily-question card to stay light-on-light in
+   dark mode even though the --ink/--bg variables themselves were fine.) */
+@media (prefers-color-scheme: dark) {
+  .note-card.mine {
+    background: #2b1e20;
+    border-color: #4a2c2c;
+  }
+
+  .ping-card {
+    background: #2b1e20;
+    border-color: #4a2c2c;
+  }
+
+  .daily-card {
+    background: linear-gradient(135deg, #201a16, #241a1a);
+    border-color: #3a2a26;
+  }
+
+  .daily-answer {
+    background: var(--surface);
+    color: var(--ink);
+  }
+
+  .streak-badge {
+    background: var(--surface);
+    color: var(--ink);
+  }
+
+  .settings-section.danger {
+    border-color: #5a2c2c;
+  }
+
+  .confirm-box {
+    background: #2b1e1e;
+  }
+
+  .quiz-tile-badge.done {
+    background: #1a2e28;
+  }
+
+  .quiz-tile-badge.waiting {
+    background: #2e2618;
+  }
+
+  .quiz-option.selected {
+    background: #2b1e20;
+  }
+
+  .quiz-answer.theirs.matched {
+    background: #1a2e28;
+  }
 }

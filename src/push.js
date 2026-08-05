@@ -34,7 +34,10 @@ export async function getPushSubscriptionState() {
 export async function enablePush(user, couple) {
   if (!pushSupported()) throw new Error('Push notifications are not supported on this device/browser.')
   const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
-  if (!vapidKey) throw new Error('Push is not configured yet (missing VAPID key).')
+  if (!vapidKey)
+    throw new Error(
+      'Push notifications need a one-time setup step first — see "Turn on push notifications" in the README (add VITE_VAPID_PUBLIC_KEY in Vercel, then redeploy).'
+    )
 
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') throw new Error('Notification permission was not granted.')
