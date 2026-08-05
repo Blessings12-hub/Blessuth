@@ -64,7 +64,7 @@ const MIN_MOVE_KM = 0.5
 const MIN_INTERVAL_MS = 5 * 60 * 1000
 
 export default function Dashboard() {
-  const { user, profile, couple, partnerName, partnerTimezone, partnerBirthday, logout } = useAuth()
+  const { user, profile, couple, partnerName, partnerTimezone, partnerBirthday, partnerAvatarUrl, logout } = useAuth()
   const [editingDate, setEditingDate] = useState(false)
   const [dateInput, setDateInput] = useState(couple?.next_visit_date || '')
   const [editingSince, setEditingSince] = useState(false)
@@ -163,7 +163,7 @@ export default function Dashboard() {
     { to: '/canvas', label: 'Shared Canvas', Icon: CanvasIcon, desc: 'Doodle together, live' },
     { to: '/photos', label: 'Photo Memories', Icon: PhotoIcon, desc: 'Your shared album' },
     { to: '/quizzes', label: 'Couple Quiz', Icon: QuizIcon, desc: 'How well do you know each other?' },
-    { to: '/location', label: 'Full Map', Icon: MapPinIcon, desc: 'See it on the map' },
+    { to: '/location', label: 'Distance', Icon: MapPinIcon, desc: 'How far apart you are right now' },
     { to: '/music', label: 'Mood & Music', Icon: HeadphonesIcon, desc: "What you're feeling / playing" },
     { to: '/notes', label: 'Love Notes', Icon: MailIcon, desc: 'Little messages, anytime' },
   ]
@@ -177,8 +177,20 @@ export default function Dashboard() {
       <header className="dash-header">
         <div className="dash-header-left">
           <div className="couple-avatars">
-            <span className="avatar mine">{(profile?.display_name || '?')[0].toUpperCase()}</span>
-            <span className="avatar theirs">{(partnerName || '?')[0].toUpperCase()}</span>
+            <span className="avatar mine">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" />
+              ) : (
+                (profile?.display_name || '?')[0].toUpperCase()
+              )}
+            </span>
+            <span className="avatar theirs">
+              {partnerAvatarUrl ? (
+                <img src={partnerAvatarUrl} alt="" />
+              ) : (
+                (partnerName || '?')[0].toUpperCase()
+              )}
+            </span>
           </div>
           <div>
             <h1>Hi {profile?.display_name}</h1>

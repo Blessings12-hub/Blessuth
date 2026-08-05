@@ -11,6 +11,44 @@ function scoreTier(pct) {
   return { text: 'Total opposites. Never a dull moment!' }
 }
 
+// Animates a number counting up from 0 to `value` over roughly `duration` ms.
+function useCountUp(value, duration = 700) {
+  const [display, setDisplay] = useState(0)
+  useEffect(() => {
+    if (value == null) return
+    let start = null
+    let frame
+    function tick(ts) {
+      if (start === null) start = ts
+      const progress = Math.min((ts - start) / duration, 1)
+      setDisplay(Math.round(progress * value))
+      if (progress < 1) frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [value, duration])
+  return display
+}
+
+function Confetti() {
+  const pieces = Array.from({ length: 18 })
+  return (
+    <div className="confetti-burst" aria-hidden="true">
+      {pieces.map((_, i) => (
+        <span
+          key={i}
+          className="confetti-piece"
+          style={{
+            left: `${(i / pieces.length) * 100}%`,
+            animationDelay: `${(i % 6) * 0.08}s`,
+            background: ['var(--sunset)', 'var(--gold)', 'var(--teal)'][i % 3],
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 export default function Quizzes() {
   const { couple, user, partnerUid, partnerName, profile } = useAuth()
   const [allAnswers, setAllAnswers] = useState([])
@@ -82,9 +120,9 @@ export default function Quizzes() {
     next[step] = optionIndex
     setSelections(next)
     if (step < set.questions.length - 1) {
-      setTimeout(() => setStep(step + 1), 200)
+      setTimeout(() => setStep(step + 1), 220)
     } else {
-      setTimeout(() => submit(next), 200)
+      setTimeout(() => submit(next), 220)
     }
   }
 
@@ -107,10 +145,15 @@ export default function Quizzes() {
         )}
 
         <div className="quiz-hub-grid">
-          {Object.entries(QUIZ_SETS).map(([key, set]) => {
+          {Object.entries(QUIZ_SETS).map(([key, set], i) => {
             const status = statusFor(key)
             return (
-              <button key={key} className="quiz-tile" onClick={() => openQuiz(key)}>
+              <button
+                key={key}
+                className="quiz-tile quiz-tile-enter"
+                style={{ animationDelay: `${i * 0.04}s` }}
+                onClick={() => openQuiz(key)}
+              >
                 <div className="quiz-tile-title">{set.title}</div>
                 <div className="quiz-tile-count">{set.questions.length} questions</div>
                 {status.done ? (
@@ -143,40 +186,7 @@ export default function Quizzes() {
       <h2>{set.title}</h2>
 
       {showResults ? (
-        <>
-          <div className="quiz-score-card">
-            <div className="quiz-score-pct">{status.pct}%</div>
-            <div className="quiz-score-label">match</div>
-            <p className="quiz-score-text">{scoreTier(status.pct).text}</p>
-          </div>
-
-          <div className="quiz-results">
-            {set.questions.map((q, i) => {
-              const matched = status.mine.answers[i] === status.theirs.answers[i]
-              return (
-                <div key={i} className="quiz-result-row">
-                  <p className={'quiz-question' + (matched ? ' matched' : ' different')}>
-                    {q.q}
-                  </p>
-                  <div className="quiz-answer-pair">
-                    <div className="quiz-answer mine">
-                      <span className="label">You</span>
-                      {q.options[status.mine.answers[i]]}
-                    </div>
-                    <div className={'quiz-answer theirs' + (matched ? ' matched' : '')}>
-                      <span className="label">{partnerName || 'Partner'}</span>
-                      {q.options[status.theirs.answers[i]]}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          <button className="link-btn" onClick={retake}>
-            Retake this quiz
-          </button>
-        </>
+        <QuizResults set={set} status={status} partnerName={partnerName} onRetake={retake} />
       ) : showWaiting ? (
         <p className="empty-state">
           You've answered! Waiting for {partnerName || 'your partner'} to finish this one too.
@@ -192,20 +202,66 @@ export default function Quizzes() {
           <div className="quiz-progress-label">
             Question {step + 1} of {set.questions.length}
           </div>
-          <p className="quiz-taking-question">{set.questions[step].q}</p>
-          <div className="quiz-options">
-            {set.questions[step].options.map((opt, i) => (
-              <button
-                key={i}
-                className={'quiz-option' + (selections[step] === i ? ' selected' : '')}
-                onClick={() => pick(i)}
-              >
-                {opt}
-              </button>
-            ))}
+          <div key={step} className="quiz-question-enter">
+            <p className="quiz-taking-question">{set.questions[step].q}</p>
+            <div className="quiz-options">
+              {set.questions[step].options.map((opt, i) => (
+                <button
+                  key={i}
+                  className={'quiz-option' + (selections[step] === i ? ' selected' : '')}
+                  onClick={() => pick(i)}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
     </div>
+  )
+}
+
+function QuizResults({ set, status, partnerName, onRetake }) {
+  const displayPct = useCountUp(status.pct)
+
+  return (
+    <>
+      <div className="quiz-score-card">
+        {status.pct === 100 && <Confetti />}
+        <div className="quiz-score-pct">{displayPct}%</div>
+        <div className="quiz-score-label">match</div>
+        <p className="quiz-score-text">{scoreTier(status.pct).text}</p>
+      </div>
+
+      <div className="quiz-results">
+        {set.questions.map((q, i) => {
+          const matched = status.mine.answers[i] === status.theirs.answers[i]
+          return (
+            <div
+              key={i}
+              className="quiz-result-row quiz-result-enter"
+              style={{ animationDelay: `${i * 0.06}s` }}
+            >
+              <p className={'quiz-question' + (matched ? ' matched' : ' different')}>{q.q}</p>
+              <div className="quiz-answer-pair">
+                <div className="quiz-answer mine">
+                  <span className="label">You</span>
+                  {q.options[status.mine.answers[i]]}
+                </div>
+                <div className={'quiz-answer theirs' + (matched ? ' matched' : '')}>
+                  <span className="label">{partnerName || 'Partner'}</span>
+                  {q.options[status.theirs.answers[i]]}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <button className="link-btn" onClick={onRetake}>
+        Retake this quiz
+      </button>
+    </>
   )
 }
