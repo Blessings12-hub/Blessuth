@@ -21,12 +21,10 @@ const GENRES = [
 ]
 
 async function searchTracks(term) {
-  const res = await fetch(
-    `https://itunes.apple.com/search?media=music&entity=song&limit=15&term=${encodeURIComponent(term)}`
-  )
+  const res = await fetch(`/api/itunes-search?term=${encodeURIComponent(term)}`)
   if (!res.ok) throw new Error('Search failed — try again in a moment.')
   const data = await res.json()
-  return data.results.map((r) => ({
+  return (data.results || []).map((r) => ({
     id: String(r.trackId),
     title: r.trackName,
     artist: r.artistName,
@@ -44,6 +42,7 @@ export default function Music() {
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
+  const [hasSearched, setHasSearched] = useState(false)
 
   // Playback (one shared <audio> element; only one track plays at a time)
   const audioRef = useRef(null)
@@ -53,6 +52,7 @@ export default function Music() {
   const [mine, setMine] = useState(null)
   const [theirs, setTheirs] = useState(null)
   const [mood, setMood] = useState('Happy')
+  const [moodSaved, setMoodSaved] = useState(false)
 
   // Shared playlist
   const [playlist, setPlaylist] = useState([])
@@ -128,18 +128,21 @@ export default function Music() {
       setSearchError(err.message)
     } finally {
       setSearching(false)
+      setHasSearched(true)
     }
   }
 
-  async function saveMood(e) {
-    e.preventDefault()
+  async function pickMood(m) {
+    setMood(m)
     await supabase.from('moods').upsert({
       couple_id: couple.id,
       user_id: user.id,
-      mood,
+      mood: m,
       label: profile?.display_name || 'Me',
       updated_at: new Date().toISOString(),
     })
+    setMoodSaved(true)
+    setTimeout(() => setMoodSaved(false), 1500)
   }
 
   async function setNowPlaying(track) {
@@ -178,21 +181,19 @@ export default function Music() {
       <audio ref={audioRef} onEnded={() => setPlayingId(null)} />
 
       {/* Mood picker */}
-      <form onSubmit={saveMood} className="mood-form">
-        <div className="mood-picker">
-          {MOODS.map((m) => (
-            <button
-              type="button"
-              key={m}
-              className={'mood-btn' + (m === mood ? ' active' : '')}
-              onClick={() => setMood(m)}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-        <button type="submit">Update mood</button>
-      </form>
+      <div className="mood-picker">
+        {MOODS.map((m) => (
+          <button
+            type="button"
+            key={m}
+            className={'mood-btn' + (m === mood ? ' active' : '')}
+            onClick={() => pickMood(m)}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+      {moodSaved && <p className="mood-saved-hint">Mood updated</p>}
 
       <div className="mood-cards">
         <div className="mood-card">
@@ -236,7 +237,10 @@ export default function Music() {
           type="text"
           placeholder="Search song or artist…"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            setHasSearched(false)
+          }}
         />
         <button type="submit" disabled={searching}>
           {searching ? '…' : 'Search'}
@@ -259,6 +263,10 @@ export default function Music() {
       </div>
 
       {searchError && <p className="error">{searchError}</p>}
+
+      {!searching && !searchError && hasSearched && results.length === 0 && (
+        <p className="empty-state">No songs found for "{query.trim()}" — try a different spelling or artist name.</p>
+      )}
 
       <div className="track-list">
         {results.map((track) => (
