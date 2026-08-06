@@ -9,7 +9,7 @@
 --
 -- Before running this, replace the two placeholders below:
 --   <https://blescy.vercel.app/>   e.g. https://blescy.vercel.app  (no trailing slash)
---   <YOUR_WEBHOOK_SECRET>  must exactly match NOTIFY_WEBHOOK_SECRET in Vercel
+--   <W0yZoiBBbDxdVXp6c19WEnwcmPpgmCBZ>  must exactly match NOTIFY_WEBHOOK_SECRET in Vercel
 
 drop trigger if exists notify_on_message on messages;
 create trigger notify_on_message
@@ -17,7 +17,7 @@ after insert on messages
 for each row execute function supabase_functions.http_request(
   '<https://blescy.vercel.app/>/api/notify',
   'POST',
-  '{"Content-Type":"application/json","x-webhook-secret":"<YOUR_WEBHOOK_SECRET>"}',
+  '{"Content-Type":"application/json","x-webhook-secret":"<W0yZoiBBbDxdVXp6c19WEnwcmPpgmCBZ>"}',
   '{}',
   '5000'
 );
@@ -28,7 +28,7 @@ after insert on notes
 for each row execute function supabase_functions.http_request(
   '<https://blescy.vercel.app/>/api/notify',
   'POST',
-  '{"Content-Type":"application/json","x-webhook-secret":"<YOUR_WEBHOOK_SECRET>"}',
+  '{"Content-Type":"application/json","x-webhook-secret":"<W0yZoiBBbDxdVXp6c19WEnwcmPpgmCBZ>"}',
   '{}',
   '5000'
 );
@@ -39,7 +39,7 @@ after insert on daily_answers
 for each row execute function supabase_functions.http_request(
   '<https://blescy.vercel.app/>/api/notify',
   'POST',
-  '{"Content-Type":"application/json","x-webhook-secret":"<YOUR_WEBHOOK_SECRET>"}',
+  '{"Content-Type":"application/json","x-webhook-secret":"<W0yZoiBBbDxdVXp6c19WEnwcmPpgmCBZ>"}',
   '{}',
   '5000'
 );
