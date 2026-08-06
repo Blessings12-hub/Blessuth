@@ -8,14 +8,14 @@
 -- migrations.
 --
 -- Before running this, replace the two placeholders below:
---   <YOUR_VERCEL_URL>   e.g. https://blescy.vercel.app  (no trailing slash)
+--   <https://blescy.vercel.app/>   e.g. https://blescy.vercel.app  (no trailing slash)
 --   <YOUR_WEBHOOK_SECRET>  must exactly match NOTIFY_WEBHOOK_SECRET in Vercel
 
 drop trigger if exists notify_on_message on messages;
 create trigger notify_on_message
 after insert on messages
 for each row execute function supabase_functions.http_request(
-  '<YOUR_VERCEL_URL>/api/notify',
+  '<https://blescy.vercel.app/>/api/notify',
   'POST',
   '{"Content-Type":"application/json","x-webhook-secret":"<YOUR_WEBHOOK_SECRET>"}',
   '{}',
@@ -26,7 +26,7 @@ drop trigger if exists notify_on_note on notes;
 create trigger notify_on_note
 after insert on notes
 for each row execute function supabase_functions.http_request(
-  '<YOUR_VERCEL_URL>/api/notify',
+  '<https://blescy.vercel.app/>/api/notify',
   'POST',
   '{"Content-Type":"application/json","x-webhook-secret":"<YOUR_WEBHOOK_SECRET>"}',
   '{}',
@@ -37,7 +37,7 @@ drop trigger if exists notify_on_daily_answer on daily_answers;
 create trigger notify_on_daily_answer
 after insert on daily_answers
 for each row execute function supabase_functions.http_request(
-  '<YOUR_VERCEL_URL>/api/notify',
+  '<https://blescy.vercel.app/>/api/notify',
   'POST',
   '{"Content-Type":"application/json","x-webhook-secret":"<YOUR_WEBHOOK_SECRET>"}',
   '{}',
