@@ -63,7 +63,7 @@ async function spotifyFetch(token, path, options = {}) {
 }
 
 export async function spotifySearch(token, term) {
-  const params = new URLSearchParams({ q: term, type: 'track', limit: '15' })
+  const params = new URLSearchParams({ q: term, type: 'track', limit: '10' })
   const data = await spotifyFetch(token, `/search?${params.toString()}`)
   return (data?.tracks?.items || []).map((t) => ({
     id: t.id,
