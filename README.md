@@ -133,7 +133,7 @@ sync a track between you both with "Listen together." Uses Spotify's
 Authorization Code + PKCE flow — no client secret, nothing server-side to
 manage, just one dashboard step and one env var.
 
-**Before you start, two real limitations to know about:**
+**Before you start, three real limitations to know about:**
 - Both of you need a **standard Spotify Premium** plan. Spotify's cheaper
   "mobile-only" Premium tier is explicitly excluded from the Web Playback SDK
   — if either of you is on that plan, this won't work for that person, only
@@ -146,16 +146,29 @@ manage, just one dashboard step and one env var.
   that as unwanted autoplay — so they'll see a "tap to join" banner instead
   of it starting automatically. This is genuinely the ceiling of what's
   possible from a website on iOS, not a bug to chase down later.
+- Since February 2026, Spotify caps a "Development Mode" app (which is what
+  this is — there's no need for anything more) at **5 explicitly-approved
+  users**, and only lets each Spotify developer account own one such app. The
+  banner about "Developer Access and Platform Security" you'll see on the
+  dashboard is about this — it's a real, permanent policy change, not
+  something wrong with your account. Practically it just means one extra
+  step below (step a.4) that wasn't needed before.
 
 **a) Register a Spotify app**
 Go to https://developer.spotify.com/dashboard → **Create app**.
-- App name / description: anything you like.
-- Redirect URI: `https://your-app.vercel.app/spotify-callback` (must match
-  your real Vercel URL exactly, no trailing slash).
-- Which API/SDKs are you planning to use: check **Web Playback SDK** and
-  **Web API**.
-- Save, then open **Settings** on the app you just created and copy the
-  **Client ID**. You do *not* need the Client Secret for anything here.
+1. App name / description: anything you like.
+2. Redirect URI: `https://your-app.vercel.app/spotify-callback` (must match
+   your real Vercel URL exactly, no trailing slash) → click **Add**.
+3. Which API/SDKs are you planning to use: check **Web Playback SDK** and
+   **Web API** → agree to the terms → **Save**.
+4. **Add both of you as authorized users** (required — without this step,
+   whichever of you didn't create the app will get a "user not registered"
+   error when trying to connect): open the app → **Settings** → **User
+   Management** tab → **Add new user** → enter your partner's name and the
+   *email address on their Spotify account* (not their display name). The
+   person who created the app doesn't need to add themselves.
+5. Back on the app's main page, copy the **Client ID**. You do *not* need
+   the Client Secret for anything here.
 
 **b) Add the env var**
 In Vercel → **Settings → Environment Variables**, add (this one *does* get
@@ -173,7 +186,9 @@ Spotify fields to the shared playlist table.
 
 **d) Connect, as each of you**
 Open **Settings** in the app → **Spotify** → **Connect Spotify** → log in
-with your own account. Do this on both phones, each with their own account.
+with your own account. Do this on both phones, each with their own account
+— and each account needs to be one of the two you added in step a.4 (or the
+app owner's own account).
 
 ## 8. Use it
 
