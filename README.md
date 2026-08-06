@@ -119,6 +119,11 @@ Repeat once more for the `notes` table (same URL and header, Events: Insert).
 Repeat a third time for `daily_answers` (same URL and header, Events: Insert) —
 this notifies your partner when you've answered today's question.
 
+Can't find the Webhooks screen? Some Supabase dashboard layouts tuck it away,
+or it's occasionally missing depending on your project settings. Use
+`supabase-notify-triggers.sql` instead — it does the exact same thing with
+plain SQL you paste into the SQL Editor, no hunting through menus required.
+
 **e) Turn it on as a user**
 Open **Settings** in the app → **Notifications** → toggle it on → allow the
 browser permission prompt. On iPhone, push notifications only work for sites
