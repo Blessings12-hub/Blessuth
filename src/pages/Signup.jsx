@@ -31,7 +31,7 @@ export default function Signup() {
     <div className="auth-page">
       <div className="auth-hero">
         <Logo size={68} stacked />
-        <h1>Blescy</h1>
+        <h1>Blessuth</h1>
         <p>Two phones, one relationship.</p>
       </div>
 

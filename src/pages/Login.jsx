@@ -30,7 +30,7 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-hero">
         <Logo size={68} stacked />
-        <h1>Blescy</h1>
+        <h1>Blessuth</h1>
         <p>Stay close, from anywhere.</p>
       </div>
 

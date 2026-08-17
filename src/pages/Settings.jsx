@@ -219,7 +219,7 @@ export default function Settings() {
         <h3>Notifications</h3>
         {!pushState.supported ? (
           <p className="subtitle">
-            Push notifications aren't supported in this browser. On iPhone, add Blescy to your Home
+            Push notifications aren't supported in this browser. On iPhone, add Blessuth to your Home
             Screen first (Share → Add to Home Screen), then open it from there.
           </p>
         ) : (
