@@ -12,6 +12,7 @@ import LocationPage from './pages/LocationPage'
 import Music from './pages/Music'
 import Notes from './pages/Notes'
 import Settings from './pages/Settings'
+import Chat from './pages/Chat'
 
 function Gate({ children }) {
   const { user, profile, loading } = useAuth()
@@ -76,6 +77,14 @@ function AppRoutes() {
         element={
           <Gate>
             <Music />
+          </Gate>
+        }
+      />
+      <Route
+        path="/chat"
+        element={
+          <Gate>
+            <Chat />
           </Gate>
         }
       />

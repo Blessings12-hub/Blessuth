@@ -12,9 +12,9 @@ const SCOPES = [
   'user-read-playback-state',
 ].join(' ')
 
-const TOKEN_KEY = 'blescy_spotify_tokens'
-const VERIFIER_KEY = 'blescy_spotify_verifier'
-const STATE_KEY = 'blescy_spotify_state'
+const TOKEN_KEY = 'blessuth_spotify_tokens'
+const VERIFIER_KEY = 'blessuth_spotify_verifier'
+const STATE_KEY = 'blessuth_spotify_state'
 
 function randomString(length) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
