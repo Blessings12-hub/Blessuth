@@ -14,7 +14,7 @@ create extension if not exists pg_net;
 create or replace function notify_webhook() returns trigger as $$
 begin
   perform net.http_post(
-    url := 'https://blescy.vercel.app/api/notify',
+    url := 'https://blessuth.vercel.app/api/notify',
     headers := '{"Content-Type": "application/json", "x-webhook-secret": "W0yZoiBBbDxdVXp6c19WEnwcmPpgmCBZ"}'::jsonb,
     body := jsonb_build_object(
       'type', 'INSERT',

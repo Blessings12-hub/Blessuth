@@ -1,4 +1,4 @@
--- Blescy v9 migration — run this once in Supabase SQL Editor.
+-- Blessuth v9 migration — run this once in Supabase SQL Editor.
 -- Adds profile photos.
 
 alter table profiles add column if not exists avatar_url text;

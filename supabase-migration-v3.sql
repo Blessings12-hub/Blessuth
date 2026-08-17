@@ -1,4 +1,4 @@
--- Blescy v3 migration — run this once in Supabase SQL Editor.
+-- Blessuth v3 migration — run this once in Supabase SQL Editor.
 
 create table if not exists daily_answers (
   couple_id uuid references couples(id) on delete cascade not null,

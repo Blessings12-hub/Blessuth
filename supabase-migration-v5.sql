@@ -1,4 +1,4 @@
--- Blescy v5 migration — run this once in Supabase SQL Editor.
+-- Blessuth v5 migration — run this once in Supabase SQL Editor.
 
 alter table moods add column if not exists now_playing jsonb;
 
