@@ -4,7 +4,7 @@ export default function Logo({ size = 40, withWordmark = false, stacked = false 
       className={'logo-lockup' + (stacked ? ' stacked' : '')}
       style={{ display: 'inline-flex', alignItems: 'center', gap: stacked ? 8 : 10 }}
     >
-      <svg width={size} height={size} viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="Blescy">
+      <svg width={size} height={size} viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="Blessuth">
         <rect x="2" y="2" width="60" height="60" rx="16" fill="#232946" />
         <ellipse
           cx="32"
@@ -33,7 +33,7 @@ export default function Logo({ size = 40, withWordmark = false, stacked = false 
           </linearGradient>
         </defs>
       </svg>
-      {withWordmark && <span className="logo-wordmark">Blescy</span>}
+      {withWordmark && <span className="logo-wordmark">Blessuth</span>}
     </span>
   )
 }
