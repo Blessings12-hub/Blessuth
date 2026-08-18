@@ -4,6 +4,7 @@ import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 import Logo from '../components/Logo'
 import DailyQuestion from '../components/DailyQuestion'
+import OnThisDay from '../components/OnThisDay'
 import DistanceWidget from '../components/DistanceWidget'
 import {
   SettingsIcon,
@@ -46,6 +47,19 @@ function daysUntilBirthday(dateStr) {
   return Math.round((next - now) / (1000 * 60 * 60 * 24))
 }
 
+function yearsTogether(dateStr) {
+  if (!dateStr) return null
+  const start = new Date(dateStr + 'T00:00:00')
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  let years = now.getFullYear() - start.getFullYear()
+  const hadAnniversaryThisYear =
+    now.getMonth() > start.getMonth() ||
+    (now.getMonth() === start.getMonth() && now.getDate() >= start.getDate())
+  if (!hadAnniversaryThisYear) years -= 1
+  return years
+}
+
 function haversineKm(a, b) {
   const R = 6371
   const dLat = ((b.lat - a.lat) * Math.PI) / 180
@@ -79,6 +93,8 @@ export default function Dashboard() {
   const togetherDays = daysSince(couple?.together_since)
   const myBirthdayIn = daysUntilBirthday(profile?.birthday)
   const partnerBirthdayIn = daysUntilBirthday(partnerBirthday)
+  const anniversaryIn = daysUntilBirthday(couple?.together_since)
+  const yearsCount = yearsTogether(couple?.together_since)
 
   // Live-updating clock (for partner's local time)
   useEffect(() => {
@@ -219,7 +235,15 @@ export default function Dashboard() {
         </div>
       )}
 
+      {anniversaryIn === 0 && (
+        <div className="birthday-banner">
+          🎉 Happy anniversary — {yearsCount} year{yearsCount === 1 ? '' : 's'} together!
+        </div>
+      )}
+
       <DailyQuestion />
+
+      <OnThisDay />
 
       <DistanceWidget />
 
@@ -243,6 +267,20 @@ export default function Dashboard() {
             <>
               <div className="widget-value">{togetherDays}</div>
               <div className="widget-label">days together</div>
+            </>
+          ) : (
+            <div className="widget-label">Tap to set your start date</div>
+          )}
+        </div>
+
+        <div className="widget-card" onClick={() => setEditingSince(true)}>
+          <div className="widget-icon"><HeartIcon size={20} /></div>
+          {anniversaryIn !== null ? (
+            <>
+              <div className="widget-value">{anniversaryIn === 0 ? `${yearsCount}yr` : anniversaryIn}</div>
+              <div className="widget-label">
+                {anniversaryIn === 0 ? 'Happy anniversary!' : 'days to your anniversary'}
+              </div>
             </>
           ) : (
             <div className="widget-label">Tap to set your start date</div>

@@ -3,6 +3,7 @@ import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 
 const PAGE_SIZE = 50
+const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥']
 
 function dayLabel(iso) {
   const d = new Date(iso)
@@ -33,6 +34,7 @@ export default function Chat() {
   const [activeId, setActiveId] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [editText, setEditText] = useState('')
+  const [reactions, setReactions] = useState({}) // { [messageId]: { [userId]: emoji } }
 
   const bottomRef = useRef(null)
   const presenceChannelRef = useRef(null)
@@ -69,6 +71,31 @@ export default function Chat() {
     setLoadingMore(false)
   }
 
+  async function loadReactions() {
+    if (!couple) return
+    const { data } = await supabase.from('message_reactions').select('*').eq('couple_id', couple.id)
+    const map = {}
+    ;(data || []).forEach((r) => {
+      map[r.message_id] = { ...(map[r.message_id] || {}), [r.user_id]: r.emoji }
+    })
+    setReactions(map)
+  }
+
+  function upsertReactionLocal(row) {
+    setReactions((prev) => ({
+      ...prev,
+      [row.message_id]: { ...(prev[row.message_id] || {}), [row.user_id]: row.emoji },
+    }))
+  }
+
+  function removeReactionLocal(row) {
+    setReactions((prev) => {
+      const forMessage = { ...(prev[row.message_id] || {}) }
+      delete forMessage[row.user_id]
+      return { ...prev, [row.message_id]: forMessage }
+    })
+  }
+
   async function markRead() {
     if (!couple || !user) return
     await supabase
@@ -83,7 +110,27 @@ export default function Chat() {
   useEffect(() => {
     if (!couple) return
     loadInitial()
+    loadReactions()
     markRead()
+
+    const reactionsChannel = supabase
+      .channel(`message-reactions-${couple.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'message_reactions', filter: `couple_id=eq.${couple.id}` },
+        (payload) => upsertReactionLocal(payload.new)
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'message_reactions', filter: `couple_id=eq.${couple.id}` },
+        (payload) => upsertReactionLocal(payload.new)
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'message_reactions', filter: `couple_id=eq.${couple.id}` },
+        (payload) => removeReactionLocal(payload.old)
+      )
+      .subscribe()
 
     const channel = supabase
       .channel(`messages-${couple.id}`)
@@ -111,7 +158,10 @@ export default function Chat() {
       )
       .subscribe()
 
-    return () => supabase.removeChannel(channel)
+    return () => {
+      supabase.removeChannel(channel)
+      supabase.removeChannel(reactionsChannel)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couple?.id])
 
@@ -202,6 +252,21 @@ export default function Chat() {
     setActiveId(null)
   }
 
+  async function react(messageId, emoji) {
+    const existing = reactions[messageId]?.[user.id]
+    if (existing === emoji) {
+      await supabase.from('message_reactions').delete().eq('message_id', messageId).eq('user_id', user.id)
+    } else {
+      await supabase
+        .from('message_reactions')
+        .upsert(
+          { message_id: messageId, couple_id: couple.id, user_id: user.id, emoji },
+          { onConflict: 'message_id,user_id' }
+        )
+    }
+    setActiveId(null)
+  }
+
   const lastMessage = messages[messages.length - 1]
   const showSeenStatus = lastMessage && lastMessage.sender_id === user?.id
 
@@ -242,7 +307,7 @@ export default function Chat() {
               {showDay && <div className="chat-day-divider">{dayLabel(m.created_at)}</div>}
               <div
                 className={'chat-bubble' + (mine ? ' mine' : ' theirs')}
-                onClick={() => mine && !editing && setActiveId(activeId === m.id ? null : m.id)}
+                onClick={() => !editing && setActiveId(activeId === m.id ? null : m.id)}
               >
                 {showName && <div className="chat-bubble-name">{m.sender_name || partnerName || 'Partner'}</div>}
 
@@ -273,14 +338,40 @@ export default function Chat() {
                   </>
                 )}
 
-                {mine && activeId === m.id && !editing && (
+                {Object.keys(reactions[m.id] || {}).length > 0 && (
+                  <div className={'chat-bubble-reactions' + (mine ? ' mine' : '')}>
+                    {Object.entries(reactions[m.id]).map(([uid, emoji]) => (
+                      <span key={uid} className="reaction-chip">
+                        {emoji}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {activeId === m.id && !editing && (
                   <div className="chat-bubble-actions" onClick={(e) => e.stopPropagation()}>
-                    <button type="button" onClick={() => startEdit(m)}>
-                      Edit
-                    </button>
-                    <button type="button" onClick={() => deleteMessage(m.id)}>
-                      Delete
-                    </button>
+                    <div className="reaction-picker">
+                      {QUICK_REACTIONS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          className={reactions[m.id]?.[user.id] === emoji ? 'active' : ''}
+                          onClick={() => react(m.id, emoji)}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                    {mine && (
+                      <div className="chat-bubble-actions-row">
+                        <button type="button" onClick={() => startEdit(m)}>
+                          Edit
+                        </button>
+                        <button type="button" onClick={() => deleteMessage(m.id)}>
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
