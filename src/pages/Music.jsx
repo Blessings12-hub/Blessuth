@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 import { PlayIcon, PauseIcon } from '../components/Icons'
-import { isSpotifyConfigured, isSpotifyConnected, getValidSpotifyToken } from '../spotifyAuth'
-import { createSpotifyPlayer, spotifySearch, spotifyPlayTrack, spotifyPause } from '../spotifyPlayer'
 
 const MOODS = ['Happy', 'In love', 'Sleepy', 'Sad', 'Frustrated', 'Celebrating', 'Content', 'Not feeling well', 'Anxious', 'Missing you']
 
@@ -28,7 +26,6 @@ async function searchItunes(term) {
   const data = await res.json()
   return (data.results || []).map((r) => ({
     id: String(r.trackId),
-    source: 'itunes',
     title: r.trackName,
     artist: r.artistName,
     artwork: r.artworkUrl100,
@@ -45,6 +42,19 @@ function formatDuration(ms) {
   return `${min}:${sec.toString().padStart(2, '0')}`
 }
 
+// No auth, no subscription check, nothing to configure — these just open a
+// search for the track in whichever app/service the person already has.
+// The trade-off vs. embedded playback: it hands off to another app instead
+// of playing inline, but it works for every listener on the first try.
+function externalLinks(title, artist) {
+  const q = encodeURIComponent(`${title} ${artist}`)
+  return {
+    spotify: `https://open.spotify.com/search/${q}`,
+    apple: `https://music.apple.com/search?term=${q}`,
+    youtube: `https://music.youtube.com/search?q=${q}`,
+  }
+}
+
 export default function Music() {
   const { couple, user, partnerUid, partnerName, profile } = useAuth()
 
@@ -55,22 +65,9 @@ export default function Music() {
   const [searchError, setSearchError] = useState('')
   const [hasSearched, setHasSearched] = useState(false)
 
-  // 30s-preview playback (iTunes fallback path)
+  // 30s-preview playback
   const audioRef = useRef(null)
   const [playingId, setPlayingId] = useState(null)
-
-  // Spotify
-  const [spotifyConnected, setSpotifyConnected] = useState(isSpotifyConnected())
-  const [spotifyReady, setSpotifyReady] = useState(false)
-  const [spotifyError, setSpotifyError] = useState('')
-  const [spotifyPlayingUri, setSpotifyPlayingUri] = useState(null)
-  const playerRef = useRef(null)
-  const deviceIdRef = useRef(null)
-  const useSpotify = spotifyConnected && spotifyReady && !spotifyError
-
-  // Listen-together sync
-  const syncChannelRef = useRef(null)
-  const [syncBanner, setSyncBanner] = useState(null)
 
   // Mood + now playing
   const [mine, setMine] = useState(null)
@@ -127,103 +124,7 @@ export default function Music() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couple?.id, partnerUid])
 
-  // Spotify player lifecycle — only spins up once tokens exist.
-  useEffect(() => {
-    if (!spotifyConnected) return
-    let cancelled = false
-
-    createSpotifyPlayer(getValidSpotifyToken, {
-      onReady: (deviceId) => {
-        if (cancelled) return
-        deviceIdRef.current = deviceId
-        setSpotifyReady(true)
-      },
-      onNotReady: () => {
-        if (cancelled) return
-        setSpotifyReady(false)
-      },
-      onStateChanged: (state) => {
-        if (cancelled || !state) return
-        setSpotifyPlayingUri(state.paused ? null : state.track_window?.current_track?.uri || null)
-      },
-      onError: (message) => {
-        if (cancelled) return
-        setSpotifyError(message)
-      },
-    })
-      .then((player) => {
-        if (cancelled) return
-        playerRef.current = player
-      })
-      .catch((err) => {
-        if (cancelled) return
-        setSpotifyError(err.message)
-      })
-
-    return () => {
-      cancelled = true
-      playerRef.current?.disconnect()
-      playerRef.current = null
-    }
-  }, [spotifyConnected])
-
-  // Listen-together broadcast channel.
-  useEffect(() => {
-    if (!couple || !user) return
-    const channel = supabase.channel(`music-sync-${couple.id}`)
-    channel
-      .on('broadcast', { event: 'track-started' }, ({ payload }) => {
-        if (payload.fromUid === user.id) return
-        setSyncBanner(payload)
-      })
-      .subscribe()
-    syncChannelRef.current = channel
-    return () => {
-      supabase.removeChannel(channel)
-      syncChannelRef.current = null
-    }
-  }, [couple?.id, user?.id])
-
-  function broadcastTrackStarted(track) {
-    syncChannelRef.current?.send({
-      type: 'broadcast',
-      event: 'track-started',
-      payload: {
-        uri: track.uri,
-        title: track.title,
-        artist: track.artist,
-        artwork: track.artwork,
-        fromUid: user.id,
-        fromName: profile?.display_name || 'Your partner',
-      },
-    })
-  }
-
-  async function playSpotifyTrack(track, { announce } = {}) {
-    playerRef.current?.activateElement?.()
-    const token = await getValidSpotifyToken()
-    if (!token || !deviceIdRef.current) {
-      setSpotifyError('Spotify is still connecting — try again in a second.')
-      return
-    }
-    await spotifyPlayTrack(token, deviceIdRef.current, track.uri)
-    setSpotifyPlayingUri(track.uri)
-    if (announce) broadcastTrackStarted(track)
-  }
-
-  async function togglePlay(track) {
-    if (track.source === 'spotify' && useSpotify) {
-      if (spotifyPlayingUri === track.uri) {
-        const token = await getValidSpotifyToken()
-        await spotifyPause(token, deviceIdRef.current)
-        setSpotifyPlayingUri(null)
-        return
-      }
-      await playSpotifyTrack(track)
-      return
-    }
-
-    // iTunes 30s-preview fallback.
+  function togglePlay(track) {
     const audio = audioRef.current
     if (!track.previewUrl) return
     if (playingId === track.id) {
@@ -236,30 +137,13 @@ export default function Music() {
     setPlayingId(track.id)
   }
 
-  async function listenTogether(track) {
-    await playSpotifyTrack(track, { announce: true })
-  }
-
-  async function joinSyncedTrack() {
-    if (!syncBanner) return
-    await playSpotifyTrack({ uri: syncBanner.uri, title: syncBanner.title, artist: syncBanner.artist })
-    setSyncBanner(null)
-  }
-
   async function runSearch(term) {
     const q = term ?? query
     if (!q.trim()) return
     setSearching(true)
     setSearchError('')
     try {
-      let tracks
-      if (useSpotify) {
-        const token = await getValidSpotifyToken()
-        tracks = (await spotifySearch(token, q)).map((t) => ({ ...t, source: 'spotify' }))
-      } else {
-        tracks = await searchItunes(q)
-      }
-      setResults(tracks)
+      setResults(await searchItunes(q))
     } catch (err) {
       setSearchError(err.message)
     } finally {
@@ -300,8 +184,6 @@ export default function Music() {
       artist: track.artist,
       artwork: track.artwork,
       preview_url: track.previewUrl || null,
-      spotify_uri: track.uri || null,
-      source: track.source,
       added_by: profile?.display_name || 'Me',
       added_by_uid: user.id,
     })
@@ -312,54 +194,15 @@ export default function Music() {
   }
 
   function playPlaylistTrack(track) {
-    if (track.source === 'spotify' && track.spotify_uri) {
-      togglePlay({ id: track.id, source: 'spotify', uri: track.spotify_uri, title: track.title, artist: track.artist })
-    } else {
-      togglePlay({ id: track.id, source: 'itunes', previewUrl: track.preview_url })
-    }
+    togglePlay({ id: track.id, previewUrl: track.preview_url })
   }
-
-  const isPlaylistTrackPlaying = (track) =>
-    track.source === 'spotify' ? spotifyPlayingUri === track.spotify_uri : playingId === track.id
 
   return (
     <div className="screen with-nav">
       <h2>Mood & Music</h2>
-      <p className="subtitle">Search real songs, play them, and build a playlist together.</p>
+      <p className="subtitle">Search real songs, play a preview, and build a playlist together.</p>
 
       <audio ref={audioRef} onEnded={() => setPlayingId(null)} />
-
-      {!spotifyConnected && isSpotifyConfigured() && (
-        <div className="spotify-banner">
-          <div>
-            <strong>Connect Spotify</strong>
-            <p>Play full songs instead of 30-second previews — needs Premium on both ends.</p>
-          </div>
-          <a href="/settings" className="spotify-connect-link">
-            Connect
-          </a>
-        </div>
-      )}
-
-      {spotifyConnected && spotifyError && (
-        <p className="error">Spotify: {spotifyError} — falling back to previews for now.</p>
-      )}
-
-      {syncBanner && (
-        <div className="sync-banner">
-          <span>
-            {syncBanner.fromName} started listening to <strong>{syncBanner.title}</strong>
-          </span>
-          <div className="sync-banner-actions">
-            <button type="button" onClick={joinSyncedTrack}>
-              Join
-            </button>
-            <button type="button" className="link-btn small" onClick={() => setSyncBanner(null)}>
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Mood picker */}
       <div className="mood-picker">
@@ -384,11 +227,7 @@ export default function Music() {
             <div className="now-playing-chip" onClick={() => togglePlay(mine.now_playing)}>
               {mine.now_playing.artwork && <img src={mine.now_playing.artwork} alt="" />}
               <span className="now-playing-label">
-                {(mine.now_playing.source === 'spotify' ? spotifyPlayingUri === mine.now_playing.uri : playingId === mine.now_playing.id) ? (
-                  <PauseIcon size={14} />
-                ) : (
-                  <PlayIcon size={14} />
-                )}
+                {playingId === mine.now_playing.id ? <PauseIcon size={14} /> : <PlayIcon size={14} />}
                 {mine.now_playing.title}
               </span>
             </div>
@@ -401,11 +240,7 @@ export default function Music() {
             <div className="now-playing-chip" onClick={() => togglePlay(theirs.now_playing)}>
               {theirs.now_playing.artwork && <img src={theirs.now_playing.artwork} alt="" />}
               <span className="now-playing-label">
-                {(theirs.now_playing.source === 'spotify' ? spotifyPlayingUri === theirs.now_playing.uri : playingId === theirs.now_playing.id) ? (
-                  <PauseIcon size={14} />
-                ) : (
-                  <PlayIcon size={14} />
-                )}
+                {playingId === theirs.now_playing.id ? <PauseIcon size={14} /> : <PlayIcon size={14} />}
                 {theirs.now_playing.title}
               </span>
             </div>
@@ -458,73 +293,84 @@ export default function Music() {
       )}
 
       <div className="track-list">
-        {results.map((track) => (
-          <div key={track.id} className="track-row">
-            <button
-              className="track-play"
-              onClick={() => togglePlay(track)}
-              disabled={track.source === 'itunes' && !track.previewUrl}
-            >
-              {(track.source === 'spotify' ? spotifyPlayingUri === track.uri : playingId === track.id) ? (
-                <PauseIcon size={16} />
-              ) : (
-                <PlayIcon size={16} />
-              )}
-            </button>
-            {track.artwork && <img src={track.artwork} alt="" className="track-artwork" />}
-            <div className="track-info">
-              <div className="track-title">{track.title}</div>
-              <div className="track-artist">
-                {track.artist}
-                {track.durationMs ? ` · ${formatDuration(track.durationMs)}` : ''}
+        {results.map((track) => {
+          const links = externalLinks(track.title, track.artist)
+          return (
+            <div key={track.id} className="track-row">
+              <button className="track-play" onClick={() => togglePlay(track)} disabled={!track.previewUrl}>
+                {playingId === track.id ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
+              </button>
+              {track.artwork && <img src={track.artwork} alt="" className="track-artwork" />}
+              <div className="track-info">
+                <div className="track-title">{track.title}</div>
+                <div className="track-artist">
+                  {track.artist}
+                  {track.durationMs ? ` · ${formatDuration(track.durationMs)}` : ''}
+                </div>
+                <div className="track-external-links">
+                  Play full song:{' '}
+                  <a href={links.spotify} target="_blank" rel="noreferrer">
+                    Spotify
+                  </a>{' '}
+                  <a href={links.apple} target="_blank" rel="noreferrer">
+                    Apple Music
+                  </a>{' '}
+                  <a href={links.youtube} target="_blank" rel="noreferrer">
+                    YouTube
+                  </a>
+                </div>
+              </div>
+              <div className="track-actions">
+                <button className="link-btn small" onClick={() => setNowPlaying(track)}>
+                  Set as playing
+                </button>
+                <button className="link-btn small" onClick={() => addToPlaylist(track)}>
+                  + Playlist
+                </button>
               </div>
             </div>
-            <div className="track-actions">
-              <button className="link-btn small" onClick={() => setNowPlaying(track)}>
-                Set as playing
-              </button>
-              {track.source === 'spotify' && useSpotify && (
-                <button className="link-btn small" onClick={() => listenTogether(track)}>
-                  Listen together
-                </button>
-              )}
-              <button className="link-btn small" onClick={() => addToPlaylist(track)}>
-                + Playlist
-              </button>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Shared playlist */}
       <h3 className="section-title">Our playlist</h3>
       <div className="track-list">
-        {playlist.map((track) => (
-          <div key={track.id} className="track-row">
-            <button
-              className="track-play"
-              onClick={() => playPlaylistTrack(track)}
-              disabled={track.source !== 'spotify' && !track.preview_url}
-            >
-              {isPlaylistTrackPlaying(track) ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
-            </button>
-            {track.artwork && <img src={track.artwork} alt="" className="track-artwork" />}
-            <div className="track-info">
-              <div className="track-title">{track.title}</div>
-              <div className="track-artist">
-                {track.artist} · added by {track.added_by}
-              </div>
-            </div>
-            {track.added_by_uid === user.id && (
-              <button className="link-btn small" onClick={() => removeFromPlaylist(track.id)}>
-                remove
+        {playlist.map((track) => {
+          const links = externalLinks(track.title, track.artist)
+          return (
+            <div key={track.id} className="track-row">
+              <button className="track-play" onClick={() => playPlaylistTrack(track)} disabled={!track.preview_url}>
+                {playingId === track.id ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
               </button>
-            )}
-          </div>
-        ))}
-        {playlist.length === 0 && (
-          <p className="empty-state">No songs yet — search above and add your first one</p>
-        )}
+              {track.artwork && <img src={track.artwork} alt="" className="track-artwork" />}
+              <div className="track-info">
+                <div className="track-title">{track.title}</div>
+                <div className="track-artist">
+                  {track.artist} · added by {track.added_by}
+                </div>
+                <div className="track-external-links">
+                  Play full song:{' '}
+                  <a href={links.spotify} target="_blank" rel="noreferrer">
+                    Spotify
+                  </a>{' '}
+                  <a href={links.apple} target="_blank" rel="noreferrer">
+                    Apple Music
+                  </a>{' '}
+                  <a href={links.youtube} target="_blank" rel="noreferrer">
+                    YouTube
+                  </a>
+                </div>
+              </div>
+              {track.added_by_uid === user.id && (
+                <button className="link-btn small" onClick={() => removeFromPlaylist(track.id)}>
+                  remove
+                </button>
+              )}
+            </div>
+          )
+        })}
+        {playlist.length === 0 && <p className="empty-state">No songs yet — search above and add your first one</p>}
       </div>
     </div>
   )

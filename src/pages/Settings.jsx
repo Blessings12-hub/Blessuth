@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabase/config'
 import Logo from '../components/Logo'
 import { pushSupported, getPushSubscriptionState, enablePush, disablePush } from '../push'
-import { isSpotifyConfigured, isSpotifyConnected, connectSpotify, disconnectSpotify } from '../spotifyAuth'
 
 // Downscales + compresses an image client-side before upload, so profile
 // photos stay small regardless of the original file size.
@@ -98,9 +97,6 @@ export default function Settings() {
   const [pushBusy, setPushBusy] = useState(false)
   const [pushError, setPushError] = useState('')
 
-  const [spotifyConnected, setSpotifyConnected] = useState(isSpotifyConnected())
-  const [spotifyError, setSpotifyError] = useState('')
-
   useEffect(() => {
     if (!pushSupported()) {
       setPushState({ supported: false, permission: 'unsupported', subscribed: false })
@@ -124,20 +120,6 @@ export default function Settings() {
       setPushError(err.message)
     } finally {
       setPushBusy(false)
-    }
-  }
-
-  async function toggleSpotify() {
-    setSpotifyError('')
-    if (spotifyConnected) {
-      disconnectSpotify()
-      setSpotifyConnected(false)
-      return
-    }
-    try {
-      await connectSpotify()
-    } catch (err) {
-      setSpotifyError(err.message)
     }
   }
 
@@ -244,29 +226,6 @@ export default function Settings() {
         )}
         {pushError && <p className="error">{pushError}</p>}
       </div>
-
-      {isSpotifyConfigured() && (
-        <div className="settings-section">
-          <h3>Spotify</h3>
-          <p className="subtitle">
-            Connect your own Premium account to play full songs on the Music page instead of
-            30-second previews, and use "Listen together" to sync a track with{' '}
-            {partnerName || 'your partner'}.
-          </p>
-          <button className="toggle-row" onClick={toggleSpotify}>
-            <span>{spotifyConnected ? 'Spotify connected' : 'Connect Spotify'}</span>
-            <span className={'toggle-switch' + (spotifyConnected ? ' on' : '')}>
-              <span className="toggle-knob" />
-            </span>
-          </button>
-          <p className="subtitle small-note">
-            Needs a standard Spotify Premium plan (not the mobile-only plan) on both accounts.
-            Playback happens in this browser tab and will pause if you lock your phone or switch
-            apps — that's a Spotify/iOS limitation, not something the app can work around.
-          </p>
-          {spotifyError && <p className="error">{spotifyError}</p>}
-        </div>
-      )}
 
       <div className="settings-section danger">
         <h3>Disconnect</h3>
