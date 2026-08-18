@@ -1979,69 +1979,17 @@ a {
   }
 }
 
-/* ---- Spotify ---- */
-.spotify-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: linear-gradient(135deg, #1a3a2e, #14201c);
-  color: white;
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  margin-bottom: 16px;
+/* ---- Music: external "play full song" links ---- */
+.track-external-links {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 3px;
 }
 
-.spotify-banner strong {
-  display: block;
-  margin-bottom: 2px;
-}
-
-.spotify-banner p {
-  margin: 0;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.spotify-connect-link {
-  flex-shrink: 0;
-  background: #1db954;
-  color: white;
-  font-weight: 700;
-  font-size: 0.85rem;
-  padding: 8px 16px;
-  border-radius: 999px;
-  text-decoration: none;
-}
-
-.sync-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin-bottom: 16px;
-  font-size: 0.85rem;
-}
-
-.sync-banner-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.sync-banner-actions button[type='button']:first-child {
-  background: var(--teal);
-  color: white;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 999px;
+.track-external-links a {
+  color: var(--teal);
   font-weight: 600;
-  font-size: 0.8rem;
+  text-decoration: none;
 }
 
 .small-note {
