@@ -33,7 +33,7 @@ Supabase's free tier, no credit card required).
 1. In Supabase, go to **Project Settings → API**. Copy the **Project URL** and the
    **anon public** key.
 2. Rename `.env.example` to `.env` and fill in `VITE_SUPABASE_URL` and
-   `VITE_SUPABASE_ANON_KEY`. You can leave `VITE_VAPID_PUBLIC_KEY` for later —
+   `VITE_SUPABASE_ANON_KEY`. You can leave `VITE_ONESIGNAL_APP_ID` for later —
    it's only needed if you set up push notifications in step 6.
 
 ## 4. Push to GitHub
@@ -62,52 +62,52 @@ prefer not to use git commands.)
 
 ## 6. Turn on push notifications (optional)
 
-This uses standard Web Push — no third-party notification service, no CLI. It
-needs one Supabase table (already in `supabase-migration-v7.sql`), one small
-serverless function that already lives in this repo at `api/notify.js`, and
-two things to wire up by hand in the dashboards.
+This uses [OneSignal](https://onesignal.com) (free tier) instead of raw Web
+Push/VAPID — it's a hosted service that handles subscriptions and delivery
+for you, and its dashboard has its own "Send test message" button that
+proves push works *before* any of our own code is involved, which is a much
+easier way to debug from a phone than reading serverless function logs.
 
-**a) Get your Supabase service role key**
+**a) Create a OneSignal app**
+1. Go to https://onesignal.com → sign up (free) → **New App/Website**.
+2. Pick a name, choose **Web Push** as the platform, then **Typical Site**
+   as the integration type.
+3. Enter your Site Name and Site URL (your `.vercel.app` URL, or your custom
+   domain if you have one). Default icon is fine. You can skip the
+   "Permission Prompt Setup" customization — the app already handles asking
+   for permission when someone toggles notifications on in Settings.
+4. Finish the setup wizard.
+
+**b) Get your App ID and REST API Key**
+In your OneSignal app → **Settings → Keys & IDs**, copy the **OneSignal App
+ID** and the **REST API Key**.
+
+**c) Get your Supabase service role key**
 In Supabase → **Project Settings → API**, copy the **service_role** key (not
 the anon key — this one is secret, never put it in `.env` or anything
 prefixed `VITE_`).
 
-**b) VAPID keys**
-A key pair was generated for you so you don't need any CLI:
+**d) Add environment variables in Vercel**
+Project → **Settings → Environment Variables** → add these (server-side
+only, do **not** prefix with `VITE_`):
 
 ```
-VAPID_PUBLIC_KEY=BJ6wm20j0ahtaYYVWE1QqssaVLOqdyxhmxvwdta5Px4fJHrtyik0-M8xD2450tfKbTWJ_nuBH0x_i_AOHhkELzQ
-VAPID_PRIVATE_KEY=uZuN7thCw1wp3YOs6haZ-GkAg-M-PPBng-Pjfq4FJIg
-```
-
-These are fine to use as-is for a personal two-person app, but since they
-passed through this chat, treat the private one as not fully secret — if
-you'd rather generate your own privately, any "generate VAPID keys" web tool
-works (search for one), or run `npx web-push generate-vapid-keys` if you ever
-have CLI access.
-
-**c) Add environment variables in Vercel**
-Project → **Settings → Environment Variables** → add these (server-side only,
-do **not** prefix with `VITE_`):
-
-```
-SUPABASE_SERVICE_ROLE_KEY=<the service_role key from step a>
-VAPID_PUBLIC_KEY=<from step b>
-VAPID_PRIVATE_KEY=<from step b>
-VAPID_SUBJECT=mailto:you@example.com
+SUPABASE_SERVICE_ROLE_KEY=<the service_role key from step c>
+ONESIGNAL_REST_API_KEY=<REST API Key from step b>
+ONESIGNAL_APP_ID=<App ID from step b>
 NOTIFY_WEBHOOK_SECRET=<make up any random string>
 ```
 
-Also add the **public** VAPID key to your `.env` (and to Vercel, this one
-*with* the `VITE_` prefix so the browser can use it):
+Also add the App ID to your `.env` (and to Vercel, this one *with* the
+`VITE_` prefix so the browser can use it):
 
 ```
-VITE_VAPID_PUBLIC_KEY=<same value as VAPID_PUBLIC_KEY from step b>
+VITE_ONESIGNAL_APP_ID=<same App ID from step b>
 ```
 
 Redeploy after adding these so they take effect.
 
-**d) Point Supabase at your notify function**
+**e) Point Supabase at your notify function**
 In Supabase → **Database → Webhooks** → **Create a new webhook**:
 - Name: `notify-messages`, Table: `messages`, Events: `Insert`
 - Type: HTTP Request, Method: `POST`
@@ -124,12 +124,25 @@ or it's occasionally missing depending on your project settings. Use
 `supabase-notify-triggers.sql` instead — it does the exact same thing with
 plain SQL you paste into the SQL Editor, no hunting through menus required.
 
-**e) Turn it on as a user**
+**f) Turn it on as a user**
 Open **Settings** in the app → **Notifications** → toggle it on → allow the
 browser permission prompt. On iPhone, push notifications only work for sites
 added to the Home Screen (Share → Add to Home Screen), Safari tabs alone
 can't receive them — this is an iOS limitation, not something the app can
 work around.
+
+**Debugging tip:** if "Send test notification" in the app fails, first try
+sending a test from the **OneSignal dashboard itself** (your app → Audience
+→ Subscriptions → find your device → send a test). If that works but the
+in-app button doesn't, the problem is in `ONESIGNAL_APP_ID`/
+`ONESIGNAL_REST_API_KEY` on Vercel. If even the dashboard test doesn't
+arrive, the problem is upstream of this app entirely — check the OneSignal
+subscription status and browser notification permission.
+
+Note: the old `push_subscriptions` Supabase table (from
+`supabase-migration-v7.sql`) is no longer used — OneSignal tracks
+subscriptions itself. It's safe to leave that table in place unused, no
+migration needed to remove it.
 
 ## 7. Use it
 

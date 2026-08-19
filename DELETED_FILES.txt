@@ -1,0 +1,1 @@
+public/sw.js was removed (superseded by public/OneSignalSDKWorker.js)
