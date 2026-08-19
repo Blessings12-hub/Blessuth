@@ -1,24 +1,25 @@
 // Vercel Serverless Function: /api/notify
 //
 // Triggered by a Supabase Database Webhook on INSERT into `messages`,
-// `notes`, or `daily_answers`. Looks up the recipient's push subscription(s)
-// and sends a Web Push notification. Runs entirely server-side — the
-// service role key and VAPID private key never reach the browser.
+// `notes`, `daily_answers`, or `message_reactions`. Figures out who should
+// be notified (the other half of the couple) and sends a push through
+// OneSignal's REST API, targeted by that person's external_id (their
+// Supabase user id) — no per-device subscription bookkeeping needed on
+// our side, OneSignal handles all of that.
 //
-// Required environment variables (set in Vercel → Project → Settings →
+// Required environment variables (Vercel → Project → Settings →
 // Environment Variables, NOT prefixed with VITE_ so they stay server-only):
 //   VITE_SUPABASE_URL          (same value already used by the frontend)
 //   SUPABASE_SERVICE_ROLE_KEY  (Supabase → Settings → API → service_role key)
-//   VAPID_PUBLIC_KEY
-//   VAPID_PRIVATE_KEY
-//   VAPID_SUBJECT               e.g. mailto:you@example.com
+//   ONESIGNAL_APP_ID
+//   ONESIGNAL_REST_API_KEY
 //   NOTIFY_WEBHOOK_SECRET       any random string you choose
 
-import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
 
-// `supabase` is only used by the daily_answers case, to look up the
-// sender's display name (that table doesn't store it on the row itself).
+// `supabase` is only used by the daily_answers/message_reactions cases, to
+// look up the sender's display name (those tables don't store it on the
+// row itself).
 async function buildNotification(table, record, supabase) {
   if (table === 'messages') {
     return {
@@ -69,6 +70,12 @@ async function buildNotification(table, record, supabase) {
   return null
 }
 
+async function findRecipientId(coupleId, senderId, supabase) {
+  const { data } = await supabase.from('couples').select('member1, member2').eq('id', coupleId).single()
+  if (!data) return null
+  return data.member1 === senderId ? data.member2 : data.member1
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'method not allowed' })
@@ -81,13 +88,6 @@ export default async function handler(req, res) {
   }
 
   const { table, record } = req.body || {}
-
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || 'mailto:hello@example.com',
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  )
-
   const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
   const notification = record ? await buildNotification(table, record, supabase) : null
@@ -97,38 +97,35 @@ export default async function handler(req, res) {
     return
   }
 
-  const { data: subs, error } = await supabase
-    .from('push_subscriptions')
-    .select('*')
-    .eq('couple_id', notification.coupleId)
-    .neq('user_id', notification.senderId)
-
-  if (error) {
-    res.status(500).json({ error: error.message })
+  const recipientId = await findRecipientId(notification.coupleId, notification.senderId, supabase)
+  if (!recipientId) {
+    res.status(200).json({ skipped: true })
     return
   }
 
-  const payload = JSON.stringify({
-    title: notification.title,
-    body: notification.body,
-    url: notification.url,
-  })
+  if (!process.env.ONESIGNAL_APP_ID || !process.env.ONESIGNAL_REST_API_KEY) {
+    res.status(500).json({ error: 'ONESIGNAL_APP_ID / ONESIGNAL_REST_API_KEY are not set in Vercel.' })
+    return
+  }
 
-  const results = await Promise.allSettled(
-    (subs || []).map(async (sub) => {
-      try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload
-        )
-      } catch (err) {
-        if (err.statusCode === 404 || err.statusCode === 410) {
-          await supabase.from('push_subscriptions').delete().eq('id', sub.id)
-        }
-        throw err
-      }
+  try {
+    const response = await fetch('https://api.onesignal.com/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Key ${process.env.ONESIGNAL_REST_API_KEY}`,
+      },
+      body: JSON.stringify({
+        app_id: process.env.ONESIGNAL_APP_ID,
+        target_channel: 'push',
+        include_aliases: { external_id: [recipientId] },
+        headings: { en: notification.title },
+        contents: { en: notification.body },
+      }),
     })
-  )
-
-  res.status(200).json({ attempted: results.length })
+    const data = await response.json().catch(() => ({}))
+    res.status(200).json({ attempted: true, sent: !!data.id, oneSignalErrors: data.errors })
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to send notification.' })
+  }
 }

@@ -1,17 +1,12 @@
 // Vercel Serverless Function: /api/notify-test
 //
-// Sends a single test push straight to the subscription the browser gives
-// it — no database webhook involved. Lets Settings' "Send test
-// notification" button tell apart the two most common failure modes:
-//   - VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY missing or wrong in Vercel
-//     → this endpoint itself fails, with a clear error
-//   - everything here is fine, but no notification ever arrives from a
-//     real message/note/reaction → the Supabase Database Webhook (README
-//     step 6d) isn't configured, or NOTIFY_WEBHOOK_SECRET doesn't match
+// Sends a single test push through OneSignal's REST API, targeted at the
+// requesting account's external_id (the Supabase user id). Always returns
+// real JSON with a specific reason on failure, unlike a raw web-push crash
+// that could come back as a blank/HTML error page.
 //
-// Requires the same VAPID_* env vars as /api/notify.
-
-import webpush from 'web-push'
+// Requires ONESIGNAL_APP_ID and ONESIGNAL_REST_API_KEY (server-side only,
+// see README step 6).
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -19,36 +14,53 @@ export default async function handler(req, res) {
     return
   }
 
-  const { endpoint, p256dh, auth: authKey } = req.body || {}
-  if (!endpoint || !p256dh || !authKey) {
-    res.status(400).json({ error: 'Missing subscription details.' })
+  const { externalId } = req.body || {}
+  if (!externalId) {
+    res.status(400).json({ error: 'Missing externalId.' })
     return
   }
 
-  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+  if (!process.env.ONESIGNAL_APP_ID || !process.env.ONESIGNAL_REST_API_KEY) {
     res.status(500).json({
       error:
-        'VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY are not set in Vercel. Add them in Settings → Environment ' +
-        'Variables (see README step 6b/6c) and redeploy.',
+        'ONESIGNAL_APP_ID / ONESIGNAL_REST_API_KEY are not set in Vercel. Add them in Settings → Environment ' +
+        'Variables (see README step 6) and redeploy.',
     })
     return
   }
 
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || 'mailto:hello@example.com',
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  )
-
   try {
-    await webpush.sendNotification(
-      { endpoint, keys: { p256dh, auth: authKey } },
-      JSON.stringify({
-        title: 'Test notification',
-        body: 'If you can see this, push itself is working correctly.',
-        url: '/#/',
+    const response = await fetch('https://api.onesignal.com/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Key ${process.env.ONESIGNAL_REST_API_KEY}`,
+      },
+      body: JSON.stringify({
+        app_id: process.env.ONESIGNAL_APP_ID,
+        target_channel: 'push',
+        include_aliases: { external_id: [externalId] },
+        headings: { en: 'Test notification' },
+        contents: { en: 'If you can see this, push itself is working correctly.' },
+      }),
+    })
+
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      res.status(500).json({ error: data.errors ? JSON.stringify(data.errors) : 'OneSignal rejected the request.' })
+      return
+    }
+
+    if (!data.id) {
+      res.status(500).json({
+        error:
+          'OneSignal accepted the request but found no subscribed device for this account. Make sure ' +
+          'notifications are turned on in Settings and the browser permission prompt was allowed, then try again.',
       })
-    )
+      return
+    }
+
     res.status(200).json({ sent: true })
   } catch (err) {
     res.status(500).json({ error: err.message || 'Failed to send test notification.' })
