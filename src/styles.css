@@ -786,6 +786,13 @@ a {
   }
 }
 
+.quiz-score-dual {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 6px;
+}
+
 .quiz-score-pct {
   font-family: 'Fraunces', serif;
   font-size: 2.4rem;
@@ -803,6 +810,21 @@ a {
 .quiz-score-text {
   margin: 0;
   font-size: 0.9rem;
+}
+
+.quiz-score-subtext {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: #b6b8d6;
+}
+
+.quiz-round-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--teal);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 8px;
 }
 
 /* ---- Quiz results ---- */
@@ -828,6 +850,7 @@ a {
 .quiz-answer-pair {
   display: flex;
   gap: 10px;
+  margin-bottom: 8px;
 }
 
 .quiz-answer {
@@ -852,7 +875,8 @@ a {
   border-color: var(--border);
 }
 
-.quiz-answer.theirs.matched {
+.quiz-answer.theirs.matched,
+.quiz-answer.mine.matched {
   border-color: var(--teal);
   background: #e4f3ee;
 }
@@ -2018,7 +2042,8 @@ a {
     background: #2b1e20;
   }
 
-  .quiz-answer.theirs.matched {
+  .quiz-answer.theirs.matched,
+  .quiz-answer.mine.matched {
     background: #1a2e28;
   }
 }
