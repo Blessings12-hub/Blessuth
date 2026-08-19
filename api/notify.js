@@ -52,6 +52,20 @@ async function buildNotification(table, record, supabase) {
       coupleId: record.couple_id,
     }
   }
+  if (table === 'message_reactions') {
+    const { data } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', record.user_id)
+      .maybeSingle()
+    return {
+      title: data?.display_name ? `${data.display_name} reacted ${record.emoji}` : `New reaction ${record.emoji}`,
+      body: 'Tap to see it in Chat.',
+      url: '/#/chat',
+      senderId: record.user_id,
+      coupleId: record.couple_id,
+    }
+  }
   return null
 }
 
