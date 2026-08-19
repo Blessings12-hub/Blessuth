@@ -41,7 +41,15 @@ export default function OnThisDay() {
 
       const pick = candidates[Math.floor(Math.random() * candidates.length)]
       const yearsAgo = today.getFullYear() - new Date(pick.created_at).getFullYear()
-      setMemory({ ...pick, yearsAgo })
+
+      // Same private-bucket situation as the Photos page — a stored public
+      // URL doesn't resolve, so sign one fresh if this pick is a photo.
+      if (pick.type === 'photo' && pick.path) {
+        const { data: signed } = await supabase.storage.from('photos').createSignedUrl(pick.path, 60 * 60)
+        if (signed?.signedUrl) pick.url = signed.signedUrl
+      }
+
+      if (!cancelled) setMemory({ ...pick, yearsAgo })
     }
 
     load()
