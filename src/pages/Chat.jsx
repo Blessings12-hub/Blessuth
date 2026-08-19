@@ -21,6 +21,27 @@ function timeLabel(iso) {
   return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 }
 
+function queueKey(coupleId) {
+  return `blessuth_chat_queue_${coupleId}`
+}
+
+function loadQueuedFromStorage(coupleId) {
+  try {
+    return JSON.parse(localStorage.getItem(queueKey(coupleId)) || '[]')
+  } catch {
+    return []
+  }
+}
+
+function saveQueuedToStorage(coupleId, queue) {
+  try {
+    localStorage.setItem(queueKey(coupleId), JSON.stringify(queue))
+  } catch {
+    // Storage full or unavailable — the queue just won't survive a reload,
+    // which is a soft failure and not worth surfacing to the user.
+  }
+}
+
 export default function Chat() {
   const { couple, user, partnerName, profile } = useAuth()
   const [messages, setMessages] = useState([])
@@ -35,11 +56,22 @@ export default function Chat() {
   const [editingId, setEditingId] = useState(null)
   const [editText, setEditText] = useState('')
   const [reactions, setReactions] = useState({}) // { [messageId]: { [userId]: emoji } }
+  const [queued, setQueued] = useState([]) // messages waiting to send once back online
 
   const bottomRef = useRef(null)
   const presenceChannelRef = useRef(null)
   const typingHideRef = useRef(null)
   const myTypingResetRef = useRef(null)
+  const queuedRef = useRef([]) // mirrors `queued`, so flushQueue always reads the latest list
+
+  function setQueuedAndPersist(updater) {
+    setQueued((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      queuedRef.current = next
+      if (couple) saveQueuedToStorage(couple.id, next)
+      return next
+    })
+  }
 
   async function loadInitial() {
     if (!couple) return
@@ -106,12 +138,33 @@ export default function Chat() {
       .is('read_at', null)
   }
 
+  async function flushQueue() {
+    if (!couple || !navigator.onLine) return
+    const current = queuedRef.current
+    if (!current.length) return
+    for (const item of current) {
+      const { error: err } = await supabase.from('messages').insert({
+        couple_id: couple.id,
+        sender_id: item.sender_id,
+        sender_name: item.sender_name,
+        text: item.text,
+      })
+      if (err) break // stop at the first failure — keeps the remaining queue in order
+      setQueuedAndPersist((prev) => prev.filter((q) => q.localId !== item.localId))
+    }
+  }
+
   // Initial load + realtime subscription for inserts/updates/deletes.
   useEffect(() => {
     if (!couple) return
+    const storedQueue = loadQueuedFromStorage(couple.id)
+    queuedRef.current = storedQueue
+    setQueued(storedQueue)
+
     loadInitial()
     loadReactions()
     markRead()
+    flushQueue()
 
     const reactionsChannel = supabase
       .channel(`message-reactions-${couple.id}`)
@@ -158,9 +211,24 @@ export default function Chat() {
       )
       .subscribe()
 
+    // Realtime sockets can silently drop while the tab sits backgrounded
+    // (phone locked, app-switched). Re-sync from scratch, and try sending
+    // anything still queued, whenever the tab becomes visible again.
+    function onVisible() {
+      if (document.visibilityState !== 'visible') return
+      loadInitial()
+      loadReactions()
+      markRead()
+      flushQueue()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('online', flushQueue)
+
     return () => {
       supabase.removeChannel(channel)
       supabase.removeChannel(reactionsChannel)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('online', flushQueue)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couple?.id])
@@ -199,9 +267,9 @@ export default function Chat() {
     }
   }, [couple?.id, user?.id])
 
-  // Only autoscroll when the newest message actually changes (not when
-  // older history gets prepended via "Load earlier").
-  const lastId = messages[messages.length - 1]?.id
+  // Only autoscroll when the newest message/queued item actually changes
+  // (not when older history gets prepended via "Load earlier").
+  const lastId = messages[messages.length - 1]?.id || queued[queued.length - 1]?.localId
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' })
   }, [lastId])
@@ -218,9 +286,22 @@ export default function Chat() {
     e.preventDefault()
     const value = text.trim()
     if (!value || sending) return
-    setSending(true)
-    setError('')
     setText('')
+    setError('')
+
+    const pending = {
+      localId: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      text: value,
+      sender_id: user.id,
+      sender_name: profile?.display_name || 'Me',
+    }
+
+    if (!navigator.onLine) {
+      setQueuedAndPersist((prev) => [...prev, pending])
+      return
+    }
+
+    setSending(true)
     const { error: err } = await supabase.from('messages').insert({
       couple_id: couple.id,
       sender_id: user.id,
@@ -228,9 +309,19 @@ export default function Chat() {
       text: value,
     })
     setSending(false)
+
     if (err) {
-      setError(err.message)
-      setText(value)
+      if (err.code) {
+        // A real rejection from the server (bad data, permissions, etc) —
+        // show it, rather than silently queuing something that can never
+        // succeed on retry.
+        setError(err.message)
+        setText(value)
+      } else {
+        // No error code usually means the request never reached the
+        // server at all — a dropped connection, not a rejection.
+        setQueuedAndPersist((prev) => [...prev, pending])
+      }
     }
   }
 
@@ -268,7 +359,7 @@ export default function Chat() {
   }
 
   const lastMessage = messages[messages.length - 1]
-  const showSeenStatus = lastMessage && lastMessage.sender_id === user?.id
+  const showSeenStatus = lastMessage && lastMessage.sender_id === user?.id && queued.length === 0
 
   return (
     <div className="screen with-nav chat-screen">
@@ -292,7 +383,7 @@ export default function Chat() {
           </button>
         )}
 
-        {messages.length === 0 && (
+        {messages.length === 0 && queued.length === 0 && (
           <p className="empty-state">No messages yet — say something to start the conversation.</p>
         )}
 
@@ -379,6 +470,15 @@ export default function Chat() {
           )
         })}
 
+        {queued.map((m) => (
+          <div key={m.localId}>
+            <div className="chat-bubble mine pending">
+              <div className="chat-bubble-text">{m.text}</div>
+              <div className="chat-bubble-time">Waiting to send…</div>
+            </div>
+          </div>
+        ))}
+
         {partnerTyping && (
           <div className="typing-indicator">{partnerName || 'Partner'} is typing…</div>
         )}
@@ -391,6 +491,12 @@ export default function Chat() {
       </div>
 
       {error && <p className="error">{error}</p>}
+      {queued.length > 0 && (
+        <p className="queued-hint">
+          {queued.length === 1 ? '1 message' : `${queued.length} messages`} will send automatically once you're back
+          online.
+        </p>
+      )}
 
       <form onSubmit={send} className="chat-input-row">
         <input

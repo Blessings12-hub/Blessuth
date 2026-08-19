@@ -4,10 +4,12 @@ import { useAuth } from '../context/AuthContext'
 import Logo from '../components/Logo'
 
 export default function Pair() {
-  const { profile, pairWithCode, logout } = useAuth()
+  const { profile, pairWithCode, regeneratePairCode, logout } = useAuth()
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
+  const [regenerateError, setRegenerateError] = useState('')
   const navigate = useNavigate()
 
   if (profile?.couple_id) return <Navigate to="/" replace />
@@ -26,6 +28,19 @@ export default function Pair() {
     }
   }
 
+  async function handleRegenerate() {
+    if (!confirm('Get a new code? Your old one will stop working — only share the new one.')) return
+    setRegenerateError('')
+    setRegenerating(true)
+    try {
+      await regeneratePairCode()
+    } catch (err) {
+      setRegenerateError(err.message)
+    } finally {
+      setRegenerating(false)
+    }
+  }
+
   return (
     <div className="auth-page">
       <div className="auth-hero">
@@ -38,6 +53,10 @@ export default function Pair() {
         <div className="pair-code-box">
           <p>Your code</p>
           <div className="pair-code">{profile?.pair_code || '……'}</div>
+          <button type="button" className="link-btn small" onClick={handleRegenerate} disabled={regenerating}>
+            {regenerating ? 'Getting a new code…' : 'Get a new code'}
+          </button>
+          {regenerateError && <p className="error">{regenerateError}</p>}
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -63,3 +82,4 @@ export default function Pair() {
     </div>
   )
 }
+

@@ -9,49 +9,92 @@ export default function Canvas() {
   const canvasRef = useRef(null)
   const drawing = useRef(false)
   const currentStroke = useRef([])
+  const strokesRef = useRef([]) // mirrors state, for the pointer-move draw loop
   const [color, setColor] = useState('#2d2d2d')
   const [width, setWidth] = useState(4)
+  const [hasStrokes, setHasStrokes] = useState(false)
 
-  function renderAll(strokes) {
+  function clearCanvas() {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     ctx.fillStyle = '#fffdf8'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
-    strokes.forEach((stroke) => {
-      if (!stroke.points || stroke.points.length < 2) return
-      ctx.beginPath()
-      ctx.strokeStyle = stroke.color
-      ctx.lineWidth = stroke.width
-      ctx.lineCap = 'round'
-      ctx.lineJoin = 'round'
-      ctx.moveTo(stroke.points[0].x, stroke.points[0].y)
-      stroke.points.slice(1).forEach((p) => ctx.lineTo(p.x, p.y))
-      ctx.stroke()
-    })
+  }
+
+  function drawStroke(stroke) {
+    const canvas = canvasRef.current
+    if (!canvas || !stroke.points || stroke.points.length < 2) return
+    const ctx = canvas.getContext('2d')
+    ctx.beginPath()
+    ctx.strokeStyle = stroke.color
+    ctx.lineWidth = stroke.width
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.moveTo(stroke.points[0].x, stroke.points[0].y)
+    stroke.points.slice(1).forEach((p) => ctx.lineTo(p.x, p.y))
+    ctx.stroke()
+  }
+
+  function renderAll(strokes) {
+    clearCanvas()
+    strokes.forEach(drawStroke)
   }
 
   async function loadBoard() {
+    if (!couple) return
     const { data } = await supabase
-      .from('boards')
-      .select('strokes')
+      .from('board_strokes')
+      .select('*')
       .eq('couple_id', couple.id)
-      .maybeSingle()
-    renderAll(data?.strokes || [])
+      .order('created_at', { ascending: true })
+    const strokes = data || []
+    strokesRef.current = strokes
+    setHasStrokes(strokes.length > 0)
+    renderAll(strokes)
   }
 
   useEffect(() => {
     if (!couple) return
     loadBoard()
+
     const channel = supabase
-      .channel(`board-${couple.id}`)
+      .channel(`board-strokes-${couple.id}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'boards', filter: `couple_id=eq.${couple.id}` },
-        loadBoard
+        { event: 'INSERT', schema: 'public', table: 'board_strokes', filter: `couple_id=eq.${couple.id}` },
+        (payload) => {
+          // Skip strokes we just drew ourselves — already on screen, and
+          // re-adding them here would just be extra work.
+          if (payload.new.by === user.id) return
+          strokesRef.current = [...strokesRef.current, payload.new]
+          setHasStrokes(true)
+          drawStroke(payload.new)
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'board_strokes', filter: `couple_id=eq.${couple.id}` },
+        () => {
+          // A clear deletes every row — simplest correct response is to
+          // just reload rather than track individual deletions.
+          loadBoard()
+        }
       )
       .subscribe()
-    return () => supabase.removeChannel(channel)
+
+    // Realtime sockets can silently drop while a tab is backgrounded for a
+    // while (phone locked, app-switched). Re-sync from scratch whenever the
+    // tab becomes visible again, so a missed stroke doesn't just stay missing.
+    function onVisible() {
+      if (document.visibilityState === 'visible') loadBoard()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      supabase.removeChannel(channel)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couple?.id])
 
@@ -94,26 +137,27 @@ export default function Canvas() {
     if (!drawing.current) return
     drawing.current = false
     if (currentStroke.current.length < 2) return
-    const stroke = { points: currentStroke.current, color, width, by: user.id }
+    const points = currentStroke.current
     currentStroke.current = []
+    setHasStrokes(true)
 
-    const { data } = await supabase
-      .from('boards')
-      .select('strokes')
-      .eq('couple_id', couple.id)
-      .maybeSingle()
-    const strokes = [...(data?.strokes || []), stroke]
-
-    if (data) {
-      await supabase.from('boards').update({ strokes }).eq('couple_id', couple.id)
-    } else {
-      await supabase.from('boards').insert({ couple_id: couple.id, strokes })
-    }
+    // A plain insert — no read-modify-write, so two strokes landing at the
+    // same moment can never overwrite each other.
+    await supabase.from('board_strokes').insert({
+      couple_id: couple.id,
+      color,
+      width,
+      points,
+      by: user.id,
+    })
   }
 
   async function clearBoard() {
     if (!confirm('Clear the whole canvas for both of you?')) return
-    await supabase.from('boards').upsert({ couple_id: couple.id, strokes: [] })
+    await supabase.from('board_strokes').delete().eq('couple_id', couple.id)
+    clearCanvas()
+    strokesRef.current = []
+    setHasStrokes(false)
   }
 
   return (
@@ -121,19 +165,22 @@ export default function Canvas() {
       <h2>Shared Canvas</h2>
       <p className="subtitle">Draw together — updates live for both of you.</p>
 
-      <canvas
-        ref={canvasRef}
-        width={600}
-        height={600}
-        className="draw-canvas"
-        onMouseDown={start}
-        onMouseMove={move}
-        onMouseUp={end}
-        onMouseLeave={end}
-        onTouchStart={start}
-        onTouchMove={move}
-        onTouchEnd={end}
-      />
+      <div className="canvas-wrap">
+        <canvas
+          ref={canvasRef}
+          width={600}
+          height={600}
+          className="draw-canvas"
+          onMouseDown={start}
+          onMouseMove={move}
+          onMouseUp={end}
+          onMouseLeave={end}
+          onTouchStart={start}
+          onTouchMove={move}
+          onTouchEnd={end}
+        />
+        {!hasStrokes && <div className="canvas-empty-hint">Draw something — it shows up for both of you live</div>}
+      </div>
 
       <div className="canvas-controls">
         <div className="swatches">
