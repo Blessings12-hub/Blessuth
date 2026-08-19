@@ -75,3 +75,23 @@ export async function disablePush() {
   await subscription.unsubscribe()
   await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint)
 }
+
+// Sends a push straight to this device's own subscription, bypassing the
+// database webhook entirely. Lets you tell apart "the webhook isn't firing"
+// from "push itself is misconfigured" — the two most common ways this
+// silently breaks — without needing to inspect server logs.
+export async function sendTestPush() {
+  if (!pushSupported()) throw new Error('Push notifications are not supported on this device/browser.')
+  const registration = await navigator.serviceWorker.ready
+  const subscription = await registration.pushManager.getSubscription()
+  if (!subscription) throw new Error('Turn notifications on first.')
+  const json = subscription.toJSON()
+  const res = await fetch('/api/notify-test', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || 'Test notification failed to send.')
+  return true
+}

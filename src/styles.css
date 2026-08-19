@@ -74,6 +74,7 @@ textarea,
 select {
   font-family: inherit;
   color: var(--ink);
+  background: var(--surface);
 }
 
 input::placeholder,
@@ -1143,6 +1144,14 @@ a {
   border-radius: 14px;
   padding: 12px 14px;
   max-width: 85%;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 0.1s ease;
+}
+
+.note-card:active {
+  transform: scale(0.98);
 }
 
 .note-card.mine {
@@ -1743,6 +1752,14 @@ a {
   background: var(--surface);
   border: 1px solid var(--border);
   align-self: flex-start;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 0.1s ease;
+}
+
+.chat-bubble:active {
+  transform: scale(0.98);
 }
 
 .chat-bubble.mine {
