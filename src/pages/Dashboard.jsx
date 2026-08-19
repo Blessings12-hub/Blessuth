@@ -266,20 +266,13 @@ export default function Dashboard() {
           {togetherDays !== null ? (
             <>
               <div className="widget-value">{togetherDays}</div>
-              <div className="widget-label">days together</div>
-            </>
-          ) : (
-            <div className="widget-label">Tap to set your start date</div>
-          )}
-        </div>
-
-        <div className="widget-card" onClick={() => setEditingSince(true)}>
-          <div className="widget-icon"><HeartIcon size={20} /></div>
-          {anniversaryIn !== null ? (
-            <>
-              <div className="widget-value">{anniversaryIn === 0 ? `${yearsCount}yr` : anniversaryIn}</div>
               <div className="widget-label">
-                {anniversaryIn === 0 ? 'Happy anniversary!' : 'days to your anniversary'}
+                days together
+                {anniversaryIn === 0
+                  ? ` · 🎉 ${yearsCount}yr anniversary today!`
+                  : anniversaryIn !== null
+                  ? ` · ${anniversaryIn}d to anniversary`
+                  : ''}
               </div>
             </>
           ) : (

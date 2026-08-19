@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 
@@ -63,6 +63,22 @@ export default function Chat() {
   const typingHideRef = useRef(null)
   const myTypingResetRef = useRef(null)
   const queuedRef = useRef([]) // mirrors `queued`, so flushQueue always reads the latest list
+  const pressTimer = useRef(null)
+
+  function startPress(id) {
+    cancelPress()
+    pressTimer.current = setTimeout(() => {
+      setActiveId(id)
+      pressTimer.current = null
+    }, 450)
+  }
+
+  function cancelPress() {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current)
+      pressTimer.current = null
+    }
+  }
 
   function setQueuedAndPersist(updater) {
     setQueued((prev) => {
@@ -394,11 +410,22 @@ export default function Chat() {
           const showName = !mine && (!prev || prev.sender_id !== m.sender_id)
           const editing = editingId === m.id
           return (
-            <div key={m.id}>
+            <Fragment key={m.id}>
               {showDay && <div className="chat-day-divider">{dayLabel(m.created_at)}</div>}
               <div
                 className={'chat-bubble' + (mine ? ' mine' : ' theirs')}
-                onClick={() => !editing && setActiveId(activeId === m.id ? null : m.id)}
+                onClick={() => {
+                  // A plain tap only closes an already-open action panel —
+                  // opening one is a long-press, handled below.
+                  if (!editing && activeId === m.id) setActiveId(null)
+                }}
+                onTouchStart={() => !editing && startPress(m.id)}
+                onTouchEnd={cancelPress}
+                onTouchMove={cancelPress}
+                onMouseDown={() => !editing && startPress(m.id)}
+                onMouseUp={cancelPress}
+                onMouseLeave={cancelPress}
+                onContextMenu={(e) => e.preventDefault()}
               >
                 {showName && <div className="chat-bubble-name">{m.sender_name || partnerName || 'Partner'}</div>}
 
@@ -466,16 +493,14 @@ export default function Chat() {
                   </div>
                 )}
               </div>
-            </div>
+            </Fragment>
           )
         })}
 
         {queued.map((m) => (
-          <div key={m.localId}>
-            <div className="chat-bubble mine pending">
-              <div className="chat-bubble-text">{m.text}</div>
-              <div className="chat-bubble-time">Waiting to send…</div>
-            </div>
+          <div key={m.localId} className="chat-bubble mine pending">
+            <div className="chat-bubble-text">{m.text}</div>
+            <div className="chat-bubble-time">Waiting to send…</div>
           </div>
         ))}
 

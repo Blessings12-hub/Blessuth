@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 
+// One hour is comfortably longer than anyone will sit on this screen in one
+// sitting, and short enough that a leaked URL stops working reasonably soon.
+const SIGNED_URL_TTL = 60 * 60
+
 export default function Photos() {
   const { couple, user, profile } = useAuth()
   const [photos, setPhotos] = useState([])
@@ -14,7 +18,20 @@ export default function Photos() {
       .select('*')
       .eq('couple_id', couple.id)
       .order('created_at', { ascending: false })
-    setPhotos(data || [])
+    const rows = data || []
+
+    // The `photos` storage bucket is private (see supabase.sql) — a plain
+    // public URL doesn't actually work against it and just shows a broken
+    // image. Signed URLs are the private-bucket equivalent, generated fresh
+    // each time the gallery loads.
+    const withUrls = await Promise.all(
+      rows.map(async (p) => {
+        if (!p.path) return p
+        const { data: signed } = await supabase.storage.from('photos').createSignedUrl(p.path, SIGNED_URL_TTL)
+        return signed?.signedUrl ? { ...p, displayUrl: signed.signedUrl } : p
+      })
+    )
+    setPhotos(withUrls)
   }
 
   useEffect(() => {
@@ -40,6 +57,9 @@ export default function Photos() {
       const path = `${couple.id}/${Date.now()}_${file.name}`
       const { error: uploadError } = await supabase.storage.from('photos').upload(path, file)
       if (uploadError) throw uploadError
+      // Storage is private, so this public URL never actually resolves —
+      // it's kept only because the column is `not null`; the gallery signs
+      // a working URL from `path` instead, every time it loads.
       const { data: urlData } = supabase.storage.from('photos').getPublicUrl(path)
       const { error: insertError } = await supabase.from('photos').insert({
         couple_id: couple.id,
@@ -92,7 +112,7 @@ export default function Photos() {
       <div className="photo-grid">
         {photos.map((p) => (
           <div key={p.id} className="photo-card">
-            <img src={p.url} alt={p.caption || 'memory'} />
+            <img src={p.displayUrl || p.url} alt={p.caption || 'memory'} />
             {p.caption && <div className="photo-caption">{p.caption}</div>}
             <div className="photo-meta">
               <span>{p.uploaded_by}</span>
@@ -107,3 +127,4 @@ export default function Photos() {
     </div>
   )
 }
+

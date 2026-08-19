@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabase/config'
 import Logo from '../components/Logo'
-import { pushSupported, getPushSubscriptionState, enablePush, disablePush } from '../push'
+import { pushSupported, getPushSubscriptionState, enablePush, disablePush, sendTestPush } from '../push'
 
 // Downscales + compresses an image client-side before upload, so profile
 // photos stay small regardless of the original file size.
@@ -96,6 +96,8 @@ export default function Settings() {
   const [pushState, setPushState] = useState({ supported: false, permission: 'default', subscribed: false })
   const [pushBusy, setPushBusy] = useState(false)
   const [pushError, setPushError] = useState('')
+  const [testBusy, setTestBusy] = useState(false)
+  const [testResult, setTestResult] = useState('')
 
   useEffect(() => {
     if (!pushSupported()) {
@@ -108,6 +110,7 @@ export default function Settings() {
   async function togglePush() {
     setPushBusy(true)
     setPushError('')
+    setTestResult('')
     try {
       if (pushState.subscribed) {
         await disablePush()
@@ -120,6 +123,19 @@ export default function Settings() {
       setPushError(err.message)
     } finally {
       setPushBusy(false)
+    }
+  }
+
+  async function handleTestPush() {
+    setTestBusy(true)
+    setTestResult('')
+    try {
+      await sendTestPush()
+      setTestResult('sent')
+    } catch (err) {
+      setTestResult(err.message)
+    } finally {
+      setTestBusy(false)
     }
   }
 
@@ -221,6 +237,27 @@ export default function Settings() {
                 Notifications are blocked for this site in your browser settings — you'll need to
                 allow them there first.
               </p>
+            )}
+            {pushState.subscribed && (
+              <>
+                <button className="link-btn small" onClick={handleTestPush} disabled={testBusy}>
+                  {testBusy ? 'Sending…' : 'Send test notification'}
+                </button>
+                {testResult === 'sent' && (
+                  <p className="subtitle small-note">
+                    Sent — if it doesn't arrive in a few seconds, push itself is blocked somewhere
+                    outside the app (OS notification settings, browser site settings, or Do Not
+                    Disturb).
+                  </p>
+                )}
+                {testResult && testResult !== 'sent' && <p className="error">{testResult}</p>}
+                <p className="subtitle small-note">
+                  Note this only tests delivery to this device — it won't tell you whether a real
+                  message from {partnerName || 'your partner'} will trigger one. That part depends on
+                  the Supabase Database Webhook pointing at <code>/api/notify</code> (README step 6d)
+                  being set up correctly.
+                </p>
+              </>
             )}
           </>
         )}
