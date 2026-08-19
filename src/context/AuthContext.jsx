@@ -176,6 +176,19 @@ export function AuthProvider({ children }) {
     if (error) throw new Error(error.message)
   }
 
+  // Retries on the rare chance the randomly generated code collides with
+  // someone else's — the unique constraint on profiles.pair_code makes that
+  // safe to detect (Postgres error code 23505).
+  async function regeneratePairCode() {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = randomPairCode()
+      const { error } = await supabase.from('profiles').update({ pair_code: code }).eq('id', user.id)
+      if (!error) return code
+      if (error.code !== '23505') throw new Error(error.message)
+    }
+    throw new Error('Could not generate a unique code — please try again.')
+  }
+
   const value = {
     user,
     profile,
@@ -191,6 +204,7 @@ export function AuthProvider({ children }) {
     logout,
     pairWithCode,
     unpairCouple,
+    regeneratePairCode,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
