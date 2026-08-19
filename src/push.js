@@ -1,95 +1,93 @@
-import { supabase } from './supabase/config'
+// Notifications, powered by OneSignal instead of raw Web Push/VAPID.
+//
+// Why the switch: the old approach (web-push + VAPID keys + a Supabase
+// Database Webhook calling our own serverless function) had three separate
+// places it could silently break, with almost no way to tell them apart
+// from a phone. OneSignal folds subscription management, delivery, and
+// retries into one service with its own dashboard — including a "Send
+// test message" button in the OneSignal dashboard itself that bypasses
+// our code entirely, which is the fastest way to confirm push works at
+// all before worrying about our own wiring.
+//
+// The OneSignal SDK script + init call live in index.html (loaded via
+// OneSignalDeferred, OneSignal's recommended pattern). Everything here
+// just talks to that already-initialized SDK instance.
 
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const rawData = atob(base64)
-  const outputArray = new Uint8Array(rawData.length)
-  for (let i = 0; i < rawData.length; i++) {
-    outputArray[i] = rawData.charCodeAt(i)
-  }
-  return outputArray
+// Queues a callback to run once the OneSignal SDK (loaded in index.html)
+// has finished initializing, and resolves with whatever it returns. Safe
+// to call this before or after the SDK script has finished loading.
+function withOneSignal(fn) {
+  return new Promise((resolve, reject) => {
+    window.OneSignalDeferred = window.OneSignalDeferred || []
+    window.OneSignalDeferred.push(async (OneSignal) => {
+      try {
+        resolve(await fn(OneSignal))
+      } catch (err) {
+        reject(err)
+      }
+    })
+  })
 }
 
 export function pushSupported() {
   return typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window
 }
 
+// OneSignal registers its own service worker (/OneSignalSDKWorker.js)
+// itself once initialized — nothing to do here. Kept so main.jsx doesn't
+// need to change.
 export async function registerServiceWorker() {
-  if (!pushSupported()) return null
-  return navigator.serviceWorker.register('/sw.js')
+  return null
 }
 
 export async function getPushSubscriptionState() {
   if (!pushSupported()) return { supported: false, permission: 'unsupported', subscribed: false }
-  const registration = await navigator.serviceWorker.ready
-  const existing = await registration.pushManager.getSubscription()
-  return {
+  return withOneSignal((OneSignal) => ({
     supported: true,
-    permission: Notification.permission,
-    subscribed: !!existing,
-  }
+    permission: typeof Notification !== 'undefined' ? Notification.permission : 'default',
+    subscribed: !!OneSignal.User.PushSubscription.optedIn,
+  }))
 }
 
-export async function enablePush(user, couple) {
+// `user` needs a `.id` — we log OneSignal in under the Supabase user id so
+// the server can target this exact person later via include_aliases /
+// external_id, no separate subscriptions table required.
+export async function enablePush(user) {
   if (!pushSupported()) throw new Error('Push notifications are not supported on this device/browser.')
-  const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
-  if (!vapidKey)
+  const appId = import.meta.env.VITE_ONESIGNAL_APP_ID
+  if (!appId)
     throw new Error(
-      'Push notifications need a one-time setup step first — see "Turn on push notifications" in the README (add VITE_VAPID_PUBLIC_KEY in Vercel, then redeploy).'
+      'Push notifications need a one-time setup step first — see "Turn on notifications" in the README (add VITE_ONESIGNAL_APP_ID in Vercel, then redeploy).'
     )
 
-  const permission = await Notification.requestPermission()
-  if (permission !== 'granted') throw new Error('Notification permission was not granted.')
-
-  const registration = await navigator.serviceWorker.ready
-  let subscription = await registration.pushManager.getSubscription()
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidKey),
-    })
-  }
-
-  const json = subscription.toJSON()
-  const { error } = await supabase.from('push_subscriptions').upsert(
-    {
-      user_id: user.id,
-      couple_id: couple.id,
-      endpoint: json.endpoint,
-      p256dh: json.keys.p256dh,
-      auth: json.keys.auth,
-    },
-    { onConflict: 'endpoint' }
-  )
-  if (error) throw error
-  return subscription
+  return withOneSignal(async (OneSignal) => {
+    await OneSignal.login(user.id)
+    await OneSignal.Notifications.requestPermission()
+    if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+      throw new Error('Notification permission was not granted.')
+    }
+    await OneSignal.User.PushSubscription.optIn()
+  })
 }
 
 export async function disablePush() {
   if (!pushSupported()) return
-  const registration = await navigator.serviceWorker.ready
-  const subscription = await registration.pushManager.getSubscription()
-  if (!subscription) return
-  const endpoint = subscription.endpoint
-  await subscription.unsubscribe()
-  await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint)
+  return withOneSignal(async (OneSignal) => {
+    await OneSignal.User.PushSubscription.optOut()
+  })
 }
 
-// Sends a push straight to this device's own subscription, bypassing the
-// database webhook entirely. Lets you tell apart "the webhook isn't firing"
-// from "push itself is misconfigured" — the two most common ways this
-// silently breaks — without needing to inspect server logs.
-export async function sendTestPush() {
+// Sends a test push to this account via OneSignal's REST API (server
+// side), targeted by external_id (the Supabase user id). Unlike the old
+// device-specific test, this also exercises the same external_id
+// targeting real notifications use — closer to the real path, still with
+// nothing on the Supabase side involved.
+export async function sendTestPush(user) {
   if (!pushSupported()) throw new Error('Push notifications are not supported on this device/browser.')
-  const registration = await navigator.serviceWorker.ready
-  const subscription = await registration.pushManager.getSubscription()
-  if (!subscription) throw new Error('Turn notifications on first.')
-  const json = subscription.toJSON()
   const res = await fetch('/api/notify-test', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth }),
+    body: JSON.stringify({ externalId: user.id }),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data.error || 'Test notification failed to send.')

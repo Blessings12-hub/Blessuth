@@ -16,7 +16,15 @@ import Chat from './pages/Chat'
 
 function Gate({ children }) {
   const { user, profile, loading } = useAuth()
-  if (loading) return <div className="center-screen">Loading…</div>
+  if (loading)
+    return (
+      <div className="loading-screen">
+        <img src="/loading-photo.jpg" alt="" className="loading-screen-photo" />
+        <div className="loading-screen-overlay">
+          <span className="loading-screen-text">Loading…</span>
+        </div>
+      </div>
+    )
   if (!user) return <Navigate to="/login" replace />
   if (!profile?.couple_id) return <Navigate to="/pair" replace />
   return children
