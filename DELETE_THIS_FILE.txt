@@ -1,0 +1,9 @@
+This update also REMOVES one file that is not included in this zip
+(since a zip can only add/update files, not delete them):
+
+  public/OneSignalSDKWorker.js
+
+Please delete that file from your project manually — it was only used by
+OneSignal's SDK, which this update replaces with native Web Push (VAPID).
+Leaving it in place is harmless (it just won't be loaded by anything
+anymore), but it's dead weight.
