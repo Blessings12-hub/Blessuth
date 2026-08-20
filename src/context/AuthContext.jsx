@@ -28,17 +28,6 @@ export function AuthProvider({ children }) {
 
   const user = session?.user || null
 
-  // Tells OneSignal which account this browser belongs to (or clears it on
-  // logout), so /api/notify can target this person later via external_id —
-  // regardless of whether they've turned notifications on yet.
-  useEffect(() => {
-    window.OneSignalDeferred = window.OneSignalDeferred || []
-    window.OneSignalDeferred.push(async (OneSignal) => {
-      if (user) await OneSignal.login(user.id)
-      else await OneSignal.logout()
-    })
-  }, [user?.id])
-
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
