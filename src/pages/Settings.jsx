@@ -115,7 +115,7 @@ export default function Settings() {
       if (pushState.subscribed) {
         await disablePush()
       } else {
-        await enablePush(user)
+        await enablePush(user, couple.id)
       }
       const next = await getPushSubscriptionState()
       setPushState(next)
@@ -252,9 +252,9 @@ export default function Settings() {
                 )}
                 {testResult && testResult !== 'sent' && <p className="error">{testResult}</p>}
                 <p className="subtitle small-note">
-                  Note this only tests that OneSignal can reach this account — it won't tell you
-                  whether a real message from {partnerName || 'your partner'} will trigger one. That
-                  part depends on the Supabase Database Webhook pointing at <code>/api/notify</code>{' '}
+                  Note this only tests that push can reach this account — it won't tell you whether
+                  a real message from {partnerName || 'your partner'} will trigger one. That part
+                  depends on the Supabase Database Webhook pointing at <code>/api/notify</code>{' '}
                   (README step 6) being set up correctly.
                 </p>
               </>
