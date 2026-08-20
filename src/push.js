@@ -1,93 +1,108 @@
-// Notifications, powered by OneSignal instead of raw Web Push/VAPID.
+// Notifications, powered by native Web Push (VAPID) — no third-party
+// service, no account signup, entirely free forever.
 //
-// Why the switch: the old approach (web-push + VAPID keys + a Supabase
-// Database Webhook calling our own serverless function) had three separate
-// places it could silently break, with almost no way to tell them apart
-// from a phone. OneSignal folds subscription management, delivery, and
-// retries into one service with its own dashboard — including a "Send
-// test message" button in the OneSignal dashboard itself that bypasses
-// our code entirely, which is the fastest way to confirm push works at
-// all before worrying about our own wiring.
-//
-// The OneSignal SDK script + init call live in index.html (loaded via
-// OneSignalDeferred, OneSignal's recommended pattern). Everything here
-// just talks to that already-initialized SDK instance.
+// How it fits together:
+//   1. You generate one VAPID key pair (a one-time `npx web-push
+//      generate-vapid-keys` command — see README "Turn on notifications").
+//   2. The browser's built-in PushManager uses the public half of that
+//      key pair to create a "subscription" for this browser — basically a
+//      unique URL plus two encryption keys. We save that to Supabase.
+//   3. Later, api/notify.js sends a push to that URL using the private
+//      half of the key pair (via the `web-push` npm package). Only
+//      someone holding the private key can send to that subscription,
+//      which is what makes Web Push secure without needing an account
+//      anywhere.
+//   4. public/sw.js (our own service worker, registered below) receives
+//      the push in the background and shows the OS notification.
 
-// Queues a callback to run once the OneSignal SDK (loaded in index.html)
-// has finished initializing, and resolves with whatever it returns. Safe
-// to call this before or after the SDK script has finished loading.
-function withOneSignal(fn) {
-  return new Promise((resolve, reject) => {
-    window.OneSignalDeferred = window.OneSignalDeferred || []
-    window.OneSignalDeferred.push(async (OneSignal) => {
-      try {
-        resolve(await fn(OneSignal))
-      } catch (err) {
-        reject(err)
-      }
-    })
-  })
-}
+import { supabase } from './supabase/config'
 
 export function pushSupported() {
   return typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window
 }
 
-// OneSignal registers its own service worker (/OneSignalSDKWorker.js)
-// itself once initialized — nothing to do here. Kept so main.jsx doesn't
-// need to change.
+// Registers our service worker. Safe to call more than once — the browser
+// no-ops if it's already registered and unchanged.
 export async function registerServiceWorker() {
-  return null
+  if (!pushSupported()) return null
+  return navigator.serviceWorker.register('/sw.js')
+}
+
+// PushManager wants the VAPID public key as a Uint8Array, not the
+// base64url string it's normally shared as — this converts between them.
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = atob(base64)
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
 }
 
 export async function getPushSubscriptionState() {
   if (!pushSupported()) return { supported: false, permission: 'unsupported', subscribed: false }
-  return withOneSignal((OneSignal) => ({
+  const registration = await navigator.serviceWorker.ready.catch(() => null)
+  const subscription = registration ? await registration.pushManager.getSubscription() : null
+  return {
     supported: true,
     permission: typeof Notification !== 'undefined' ? Notification.permission : 'default',
-    subscribed: !!OneSignal.User.PushSubscription.optedIn,
-  }))
+    subscribed: !!subscription,
+  }
 }
 
-// `user` needs a `.id` — we log OneSignal in under the Supabase user id so
-// the server can target this exact person later via include_aliases /
-// external_id, no separate subscriptions table required.
-export async function enablePush(user) {
+// Subscribes this browser to push and saves the subscription to Supabase,
+// tied to this Supabase user id, so /api/notify can look it up later.
+export async function enablePush(user, coupleId) {
   if (!pushSupported()) throw new Error('Push notifications are not supported on this device/browser.')
-  const appId = import.meta.env.VITE_ONESIGNAL_APP_ID
-  if (!appId)
+
+  const publicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+  if (!publicKey)
     throw new Error(
-      'Push notifications need a one-time setup step first — see "Turn on notifications" in the README (add VITE_ONESIGNAL_APP_ID in Vercel, then redeploy).'
+      'Push notifications need a one-time setup step first — see "Turn on notifications" in the README (add VITE_VAPID_PUBLIC_KEY in Vercel, then redeploy).'
     )
 
-  return withOneSignal(async (OneSignal) => {
-    await OneSignal.login(user.id)
-    await OneSignal.Notifications.requestPermission()
-    if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
-      throw new Error('Notification permission was not granted.')
-    }
-    await OneSignal.User.PushSubscription.optIn()
-  })
+  const registration = await navigator.serviceWorker.ready
+  const permission = await Notification.requestPermission()
+  if (permission !== 'granted') throw new Error('Notification permission was not granted.')
+
+  const subscription =
+    (await registration.pushManager.getSubscription()) ||
+    (await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    }))
+
+  const json = subscription.toJSON()
+  const { error } = await supabase.from('push_subscriptions').upsert(
+    {
+      user_id: user.id,
+      couple_id: coupleId,
+      endpoint: json.endpoint,
+      p256dh: json.keys.p256dh,
+      auth: json.keys.auth,
+    },
+    { onConflict: 'endpoint' }
+  )
+  if (error) throw error
 }
 
 export async function disablePush() {
   if (!pushSupported()) return
-  return withOneSignal(async (OneSignal) => {
-    await OneSignal.User.PushSubscription.optOut()
-  })
+  const registration = await navigator.serviceWorker.ready.catch(() => null)
+  const subscription = registration ? await registration.pushManager.getSubscription() : null
+  if (!subscription) return
+  const endpoint = subscription.endpoint
+  await subscription.unsubscribe()
+  await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint)
 }
 
-// Sends a test push to this account via OneSignal's REST API (server
-// side), targeted by external_id (the Supabase user id). Unlike the old
-// device-specific test, this also exercises the same external_id
-// targeting real notifications use — closer to the real path, still with
-// nothing on the Supabase side involved.
+// Sends a test push to this account's saved subscription(s) via our own
+// /api/notify-test endpoint (which holds the private VAPID key — that key
+// must never reach the browser).
 export async function sendTestPush(user) {
   if (!pushSupported()) throw new Error('Push notifications are not supported on this device/browser.')
   const res = await fetch('/api/notify-test', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ externalId: user.id }),
+    body: JSON.stringify({ userId: user.id }),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data.error || 'Test notification failed to send.')
