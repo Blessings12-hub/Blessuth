@@ -16,6 +16,7 @@
 //   NOTIFY_WEBHOOK_SECRET       any random string you choose
 
 import { createClient } from '@supabase/supabase-js'
+import QUIZ_TOPICS from '../src/data/quizSets.js'
 
 // `supabase` is only used by the daily_answers/message_reactions cases, to
 // look up the sender's display name (those tables don't store it on the
@@ -63,6 +64,18 @@ async function buildNotification(table, record, supabase) {
       title: data?.display_name ? `${data.display_name} reacted ${record.emoji}` : `New reaction ${record.emoji}`,
       body: 'Tap to see it in Chat.',
       url: '/#/chat',
+      senderId: record.user_id,
+      coupleId: record.couple_id,
+    }
+  }
+  if (table === 'quiz_answers') {
+    const [topicKey, subtopicKey] = String(record.quiz_key || '').split('.')
+    const subtopicTitle = QUIZ_TOPICS?.[topicKey]?.subtopics?.[subtopicKey]?.title || 'a quiz'
+    const name = record.user_name || 'Your partner'
+    return {
+      title: `${name} finished a quiz!`,
+      body: `They completed "${subtopicTitle}". Tap to answer and see how you compare.`,
+      url: '/#/quizzes',
       senderId: record.user_id,
       coupleId: record.couple_id,
     }
