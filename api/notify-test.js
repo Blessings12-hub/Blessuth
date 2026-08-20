@@ -1,12 +1,12 @@
 // Vercel Serverless Function: /api/notify-test
 //
-// Sends a single test push through OneSignal's REST API, targeted at the
-// requesting account's external_id (the Supabase user id). Always returns
-// real JSON with a specific reason on failure, unlike a raw web-push crash
-// that could come back as a blank/HTML error page.
-//
-// Requires ONESIGNAL_APP_ID and ONESIGNAL_REST_API_KEY (server-side only,
-// see README step 6).
+// Sends a single test push to every subscription saved for the requesting
+// account, using native Web Push (VAPID) — see api/_webpush.js. Always
+// returns real JSON with a specific reason on failure, unlike a raw
+// web-push crash that could come back as a blank/HTML error page.
+
+import { createClient } from '@supabase/supabase-js'
+import { sendPushToUser } from './_webpush.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -14,49 +14,35 @@ export default async function handler(req, res) {
     return
   }
 
-  const { externalId } = req.body || {}
-  if (!externalId) {
-    res.status(400).json({ error: 'Missing externalId.' })
+  const { userId } = req.body || {}
+  if (!userId) {
+    res.status(400).json({ error: 'Missing userId.' })
     return
   }
 
-  if (!process.env.ONESIGNAL_APP_ID || !process.env.ONESIGNAL_REST_API_KEY) {
-    res.status(500).json({
-      error:
-        'ONESIGNAL_APP_ID / ONESIGNAL_REST_API_KEY are not set in Vercel. Add them in Settings → Environment ' +
-        'Variables (see README step 6) and redeploy.',
-    })
-    return
-  }
+  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
   try {
-    const response = await fetch('https://api.onesignal.com/notifications', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Key ${process.env.ONESIGNAL_REST_API_KEY}`,
-      },
-      body: JSON.stringify({
-        app_id: process.env.ONESIGNAL_APP_ID,
-        target_channel: 'push',
-        include_aliases: { external_id: [externalId] },
-        headings: { en: 'Test notification' },
-        contents: { en: 'If you can see this, push itself is working correctly.' },
-      }),
+    const result = await sendPushToUser(supabase, userId, {
+      title: 'Test notification',
+      body: 'If you can see this, push itself is working correctly.',
+      url: '/',
     })
 
-    const data = await response.json().catch(() => ({}))
-
-    if (!response.ok) {
-      res.status(500).json({ error: data.errors ? JSON.stringify(data.errors) : 'OneSignal rejected the request.' })
+    if (result.total === 0) {
+      res.status(500).json({
+        error:
+          'No saved subscription found for this account. Make sure notifications are turned on in ' +
+          'Settings and the browser permission prompt was allowed, then try again.',
+      })
       return
     }
 
-    if (!data.id) {
+    if (result.sent === 0) {
       res.status(500).json({
         error:
-          'OneSignal accepted the request but found no subscribed device for this account. Make sure ' +
-          'notifications are turned on in Settings and the browser permission prompt was allowed, then try again.',
+          'Found a saved subscription but the push service rejected it (it may be stale). Try turning ' +
+          'notifications off and back on in Settings.',
       })
       return
     }

@@ -1,22 +1,14 @@
 // Vercel Serverless Function: /api/notify
 //
 // Triggered by a Supabase Database Webhook on INSERT into `messages`,
-// `notes`, `daily_answers`, or `message_reactions`. Figures out who should
-// be notified (the other half of the couple) and sends a push through
-// OneSignal's REST API, targeted by that person's external_id (their
-// Supabase user id) — no per-device subscription bookkeeping needed on
-// our side, OneSignal handles all of that.
-//
-// Required environment variables (Vercel → Project → Settings →
-// Environment Variables, NOT prefixed with VITE_ so they stay server-only):
-//   VITE_SUPABASE_URL          (same value already used by the frontend)
-//   SUPABASE_SERVICE_ROLE_KEY  (Supabase → Settings → API → service_role key)
-//   ONESIGNAL_APP_ID
-//   ONESIGNAL_REST_API_KEY
-//   NOTIFY_WEBHOOK_SECRET       any random string you choose
+// `notes`, `daily_answers`, `message_reactions`, or `quiz_answers`.
+// Figures out who should be notified (the other half of the couple) and
+// sends a push using native Web Push (VAPID) — see api/_webpush.js for
+// the actual sending + required environment variables.
 
 import { createClient } from '@supabase/supabase-js'
 import QUIZ_TOPICS from '../src/data/quizSets.js'
+import { sendPushToUser } from './_webpush.js'
 
 // `supabase` is only used by the daily_answers/message_reactions cases, to
 // look up the sender's display name (those tables don't store it on the
@@ -116,28 +108,13 @@ export default async function handler(req, res) {
     return
   }
 
-  if (!process.env.ONESIGNAL_APP_ID || !process.env.ONESIGNAL_REST_API_KEY) {
-    res.status(500).json({ error: 'ONESIGNAL_APP_ID / ONESIGNAL_REST_API_KEY are not set in Vercel.' })
-    return
-  }
-
   try {
-    const response = await fetch('https://api.onesignal.com/notifications', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Key ${process.env.ONESIGNAL_REST_API_KEY}`,
-      },
-      body: JSON.stringify({
-        app_id: process.env.ONESIGNAL_APP_ID,
-        target_channel: 'push',
-        include_aliases: { external_id: [recipientId] },
-        headings: { en: notification.title },
-        contents: { en: notification.body },
-      }),
+    const result = await sendPushToUser(supabase, recipientId, {
+      title: notification.title,
+      body: notification.body,
+      url: notification.url,
     })
-    const data = await response.json().catch(() => ({}))
-    res.status(200).json({ attempted: true, sent: !!data.id, oneSignalErrors: data.errors })
+    res.status(200).json({ attempted: true, ...result })
   } catch (err) {
     res.status(500).json({ error: err.message || 'Failed to send notification.' })
   }
