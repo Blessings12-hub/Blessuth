@@ -155,8 +155,12 @@ migration needed to remove it.
 
 - **Canvas**: real-time — strokes sync between both of you via Supabase Realtime.
 - **Photos**: uploads go to Supabase Storage, shown in a shared gallery.
-- **Quizzes**: 12 built-in topics (getting to know you, future dreams, long distance life,
-  food, movies, and more); each answers privately, results reveal once both are in.
+- **Quizzes**: 15 built-in topics, each with two 15-question subtopics (450 questions
+  total) — getting to know you, future dreams, long distance life, food, movies,
+  communication style, and more. Each of you answers privately (your own honest
+  answers, then your guesses at your partner's), results reveal once both are in.
+  When you finish a quiz, your partner gets a push notification to come take/compare
+  it — run `supabase-migration-v14.sql` if you set up your database before this update.
 - **Location**: uses your phone's GPS (you tap "Share my location") and shows the live
   distance between you — no map, just the number, updating as you both move. A true
   always-on Home Screen widget (like an iOS WidgetKit widget) isn't something a web app
