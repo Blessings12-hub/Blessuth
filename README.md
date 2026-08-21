@@ -18,11 +18,11 @@ Supabase's free tier, no credit card required).
 2. Open `supabase.sql` from this project, copy the whole file, paste it in, and click **Run**.
    This creates all the tables, security rules, and a `pair_with_code` function in one go.
 3. Then run each `supabase-migration-vN.sql` file in this project, in order (v2 through
-   v15), the same way — new query, paste, Run. Each one adds a feature that shipped
+   v16), the same way — new query, paste, Run. Each one adds a feature that shipped
    after the original `supabase.sql`. `v9` also creates the `avatars` storage bucket for
    profile photos automatically — no separate dashboard step needed for that one, unlike
-   the `photos` bucket below. `v15` is only needed if you're setting up push
-   notifications (step 6) — safe to skip for now and come back to it later.
+   the `photos` bucket below. `v16` turns on notifications (step 6) — quick either way,
+   just don't skip it or you won't get in-app alerts.
 4. Go to **Storage** (left sidebar) → **New bucket** → name it exactly `photos` →
    leave "Public bucket" **unchecked** → Create.
 5. For frictionless testing, go to **Authentication → Providers → Email** and turn
@@ -34,8 +34,7 @@ Supabase's free tier, no credit card required).
 1. In Supabase, go to **Project Settings → API**. Copy the **Project URL** and the
    **anon public** key.
 2. Rename `.env.example` to `.env` and fill in `VITE_SUPABASE_URL` and
-   `VITE_SUPABASE_ANON_KEY`. You can leave `VITE_VAPID_PUBLIC_KEY` for later —
-   it's only needed if you set up push notifications in step 6.
+   `VITE_SUPABASE_ANON_KEY`.
 
 ## 4. Push to GitHub
 
@@ -61,122 +60,35 @@ prefer not to use git commands.)
    from your `.env`.
 4. Deploy. You'll get a live `.vercel.app` URL.
 
-## 6. Turn on push notifications (optional)
+## 6. Notifications (nothing to configure)
 
-This uses native **Web Push** with your own **VAPID keys** — a standard built
-into every modern browser. There's no company or dashboard involved: you
-generate one pair of keys (think of it like a lock and the one key that
-opens it), the app uses the public half to "lock" each device's
-subscription, and your own server uses the private half to send to it.
-Nothing to sign up for, nothing that can expire or hit a usage limit.
+Blessuth shows an in-app banner when your partner sends a message, leaves a
+note, reacts, answers today's question, or finishes a quiz — powered
+directly by Supabase Realtime (a WebSocket connection from the browser to
+your database, included free on Supabase's free tier). There's no VAPID
+keys, no webhook secret, no service worker, and no serverless function
+involved — it just works once you've run the database migrations below.
 
-**a) Generate your VAPID key pair**
+**The only setup step:** run `supabase-migration-v16.sql` (Supabase →
+**SQL Editor** → **New query** → paste the file's contents → **Run**). It
+turns on Realtime for the tables the app watches.
 
-You need Node.js installed on your computer for this one-time step (if you
-already ran `npm install` in step "Local development" below, you have it).
-In the project folder, run:
+If you'd previously started setting up push notifications (VAPID keys, a
+Database Webhook, or `supabase-notify-triggers.sql`) in an earlier version
+of this project, `v16` also tears all of that down for you — it's safe to
+run either way. Afterward you can delete the `VAPID_*`, `SUPABASE_SERVICE_ROLE_KEY`,
+and `NOTIFY_WEBHOOK_SECRET` environment variables from Vercel if you'd
+added them, and remove any "notify" webhook under Supabase →
+**Database → Webhooks** — none of it is used anymore.
 
-```bash
-npx web-push generate-vapid-keys
-```
+**The one tradeoff:** since this isn't real push, alerts only show up while
+Blessuth is actually open in a tab or as an installed app — not when the
+phone is locked or the app is fully closed. If you outgrow that later, real
+push notifications (Web Push/VAPID) are a bigger but doable addition — just
+ask.
 
-This prints two long strings of random-looking characters, labeled
-**Public Key** and **Private Key**. Copy both somewhere safe — you'll paste
-them in the next step. (The Private Key is a secret, like a password —
-never share it or put it in a file that gets committed to GitHub.)
-
-**b) Get your Supabase service role key**
-
-In Supabase → **Project Settings → API**, copy the **service_role** key
-(not the anon key — this one is secret too, never put it in `.env` or
-anything prefixed `VITE_`).
-
-**c) Add environment variables in Vercel**
-
-Go to your project on Vercel → **Settings → Environment Variables**.
-Add each of these one at a time (click **Add New** for each): type the
-name on the left, paste the value on the right, and save.
-
-Server-side only (do **not** prefix these with `VITE_` — that prefix is
-what would expose a value to the browser, and the private key must never
-be exposed):
-
-```
-SUPABASE_SERVICE_ROLE_KEY=<the service_role key from step b>
-VAPID_PUBLIC_KEY=<the Public Key from step a>
-VAPID_PRIVATE_KEY=<the Private Key from step a>
-VAPID_SUBJECT=mailto:you@example.com
-NOTIFY_WEBHOOK_SECRET=<make up any random string, e.g. mash your keyboard>
-```
-
-(`VAPID_SUBJECT` just needs to be a `mailto:` link with any email address —
-it's a contact detail push services can use to reach you if your server is
-ever sending broken requests. Doesn't need to be a real inbox you check.)
-
-Also add the **public** key a second time, this one *with* the `VITE_`
-prefix so the browser is allowed to read it (the public key is safe to
-expose — that's the whole point of it being "public"):
-
-```
-VITE_VAPID_PUBLIC_KEY=<same Public Key from step a>
-```
-
-While you're there, also add `VITE_VAPID_PUBLIC_KEY` (same value) to your
-local `.env` file if you want push notifications to work while running the
-app on your own computer too.
-
-**Redeploy after adding these** so they take effect — Vercel → your
-project → **Deployments** → ⋯ on the latest one → **Redeploy**.
-
-**d) Run the database migration**
-
-In Supabase → **SQL Editor** → **New query**, paste in the contents of
-`supabase-migration-v15.sql` and click **Run**. (This reuses a table that
-was already created back in `v7`, so if you've run every migration in
-order up to `v14`, this step is quick — it just adds one missing
-permission.)
-
-**e) Point Supabase at your notify function**
-
-In Supabase → **Database → Webhooks** → **Create a new webhook**:
-- Name: `notify-messages`, Table: `messages`, Events: `Insert`
-- Type: HTTP Request, Method: `POST`
-- URL: `https://your-app.vercel.app/api/notify`
-- HTTP Headers: `x-webhook-secret` = the same random string you used for
-  `NOTIFY_WEBHOOK_SECRET`
-
-Repeat once more for the `notes` table (same URL and header, Events: Insert).
-Repeat again for `daily_answers` and `message_reactions` (same URL and
-header, Events: Insert), and once more for `quiz_answers` if you want a
-push when your partner finishes a quiz.
-
-Can't find the Webhooks screen? Some Supabase dashboard layouts tuck it away,
-or it's occasionally missing depending on your project settings. Use
-`supabase-notify-triggers.sql` instead (plus `supabase-migration-v11.sql`
-and `supabase-migration-v14.sql`, which add the reaction and quiz
-triggers) — same effect, plain SQL pasted into the SQL Editor, no hunting
-through menus required.
-
-**f) Turn it on as a user**
-
-Open **Settings** in the app → **Notifications** → toggle it on → allow the
-browser permission prompt. On iPhone, push notifications only work for sites
-added to the Home Screen (Share → Add to Home Screen), Safari tabs alone
-can't receive them — this is an iOS limitation, not something the app can
-work around.
-
-**Debugging tip:** if "Send test notification" in the app fails, the error
-message it shows is usually specific enough to point at what's missing
-(e.g. "no saved subscription found" means the toggle in Settings didn't
-actually save one — try turning it off and back on). For anything less
-clear, check **Vercel → your project → Deployments → (latest) → Functions**
-and look at the logs for `/api/notify-test` — any problem with the VAPID
-keys or Supabase connection will show up there as a plain error message.
-
-Note: unlike OneSignal, this approach stores one row per browser/device in
-the `push_subscriptions` table — that's expected, not a bug. If you use the
-app on both your phone and your laptop, each gets its own row and both can
-receive pushes.
+You can mute the in-app banners from **Settings → Notifications** in the
+app if you'd rather not see them at all.
 
 ## 7. Use it
 
@@ -193,8 +105,9 @@ receive pushes.
   total) — getting to know you, future dreams, long distance life, food, movies,
   communication style, and more. Each of you answers privately (your own honest
   answers, then your guesses at your partner's), results reveal once both are in.
-  When you finish a quiz, your partner gets a push notification to come take/compare
-  it — run `supabase-migration-v14.sql` if you set up your database before this update.
+  When you finish a quiz, your partner gets an in-app alert to come take/compare it
+  (see "Notifications" above) — run `supabase-migration-v14.sql` if you set up your
+  database before this update.
 - **Location**: uses your phone's GPS (you tap "Share my location") and shows the live
   distance between you — no map, just the number, updating as you both move. A true
   always-on Home Screen widget (like an iOS WidgetKit widget) isn't something a web app

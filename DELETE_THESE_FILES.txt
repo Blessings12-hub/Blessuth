@@ -1,0 +1,17 @@
+Zips can't represent deleted files, so after unzipping and overwriting the
+files above into your project, manually delete these 5 files — they're
+part of the old push/VAPID system and are no longer used at all:
+
+  api/_webpush.js
+  api/notify.js
+  api/notify-test.js
+  src/push.js
+  public/sw.js
+
+Then run supabase-migration-v16.sql in Supabase's SQL Editor (see the
+updated README's "Notifications" section, step 6) — that's the only
+remaining setup step, and it also cleans up the old webhook/push
+database objects for you.
+
+You can delete this .txt file itself once you're done — it's just
+instructions, not part of the app.
