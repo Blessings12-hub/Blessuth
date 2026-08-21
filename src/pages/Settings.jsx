@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabase/config'
 import Logo from '../components/Logo'
-import { pushSupported, getPushSubscriptionState, enablePush, disablePush, sendTestPush } from '../push'
+import { alertsMuted, setAlertsMuted } from '../components/InAppAlerts'
 
 // Downscales + compresses an image client-side before upload, so profile
 // photos stay small regardless of the original file size.
@@ -34,7 +34,7 @@ function resizeImage(file, maxSize = 480, quality = 0.85) {
 }
 
 export default function Settings() {
-  const { user, couple, profile, partnerName, logout, unpairCouple } = useAuth()
+  const { user, profile, partnerName, logout, unpairCouple } = useAuth()
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -93,50 +93,12 @@ export default function Settings() {
     }
   }
 
-  const [pushState, setPushState] = useState({ supported: false, permission: 'default', subscribed: false })
-  const [pushBusy, setPushBusy] = useState(false)
-  const [pushError, setPushError] = useState('')
-  const [testBusy, setTestBusy] = useState(false)
-  const [testResult, setTestResult] = useState('')
+  const [alertsOn, setAlertsOn] = useState(!alertsMuted())
 
-  useEffect(() => {
-    if (!pushSupported()) {
-      setPushState({ supported: false, permission: 'unsupported', subscribed: false })
-      return
-    }
-    getPushSubscriptionState().then(setPushState).catch(() => {})
-  }, [])
-
-  async function togglePush() {
-    setPushBusy(true)
-    setPushError('')
-    setTestResult('')
-    try {
-      if (pushState.subscribed) {
-        await disablePush()
-      } else {
-        await enablePush(user, couple.id)
-      }
-      const next = await getPushSubscriptionState()
-      setPushState(next)
-    } catch (err) {
-      setPushError(err.message)
-    } finally {
-      setPushBusy(false)
-    }
-  }
-
-  async function handleTestPush() {
-    setTestBusy(true)
-    setTestResult('')
-    try {
-      await sendTestPush(user)
-      setTestResult('sent')
-    } catch (err) {
-      setTestResult(err.message)
-    } finally {
-      setTestBusy(false)
-    }
+  function toggleAlerts() {
+    const next = !alertsOn
+    setAlertsMuted(!next)
+    setAlertsOn(next)
   }
 
   async function handleDisconnect() {
@@ -215,53 +177,18 @@ export default function Settings() {
 
       <div className="settings-section">
         <h3>Notifications</h3>
-        {!pushState.supported ? (
-          <p className="subtitle">
-            Push notifications aren't supported in this browser. On iPhone, add Blessuth to your Home
-            Screen first (Share → Add to Home Screen), then open it from there.
-          </p>
-        ) : (
-          <>
-            <p className="subtitle">
-              Get notified when {partnerName || 'your partner'} sends a message or a note, even when
-              the app is closed.
-            </p>
-            <button className="toggle-row" onClick={togglePush} disabled={pushBusy}>
-              <span>{pushState.subscribed ? 'Notifications on' : 'Turn on notifications'}</span>
-              <span className={'toggle-switch' + (pushState.subscribed ? ' on' : '')}>
-                <span className="toggle-knob" />
-              </span>
-            </button>
-            {pushState.permission === 'denied' && (
-              <p className="error">
-                Notifications are blocked for this site in your browser settings — you'll need to
-                allow them there first.
-              </p>
-            )}
-            {pushState.subscribed && (
-              <>
-                <button className="link-btn small" onClick={handleTestPush} disabled={testBusy}>
-                  {testBusy ? 'Sending…' : 'Send test notification'}
-                </button>
-                {testResult === 'sent' && (
-                  <p className="subtitle small-note">
-                    Sent — if it doesn't arrive in a few seconds, push itself is blocked somewhere
-                    outside the app (OS notification settings, browser site settings, or Do Not
-                    Disturb).
-                  </p>
-                )}
-                {testResult && testResult !== 'sent' && <p className="error">{testResult}</p>}
-                <p className="subtitle small-note">
-                  Note this only tests that push can reach this account — it won't tell you whether
-                  a real message from {partnerName || 'your partner'} will trigger one. That part
-                  depends on the Supabase Database Webhook pointing at <code>/api/notify</code>{' '}
-                  (README step 6) being set up correctly.
-                </p>
-              </>
-            )}
-          </>
-        )}
-        {pushError && <p className="error">{pushError}</p>}
+        <p className="subtitle">
+          You'll see a banner in-app when {partnerName || 'your partner'} sends a message, leaves a
+          note, reacts, answers today's question, or finishes a quiz — as long as Blessuth is open.
+          There's nothing to set up; this doesn't work when the app is fully closed or the phone is
+          locked, since it isn't a push notification.
+        </p>
+        <button className="toggle-row" onClick={toggleAlerts}>
+          <span>{alertsOn ? 'Alerts on' : 'Turn on alerts'}</span>
+          <span className={'toggle-switch' + (alertsOn ? ' on' : '')}>
+            <span className="toggle-knob" />
+          </span>
+        </button>
       </div>
 
       <div className="settings-section danger">
