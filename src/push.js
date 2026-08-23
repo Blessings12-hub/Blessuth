@@ -24,7 +24,13 @@ export async function registerServiceWorker() {
   return navigator.serviceWorker.register('/firebase-messaging-sw.js')
 }
 
-export async function getPushSubscriptionState() {
+// Checks whether push is really wired up — not just whether the browser has
+// a locally cached Firebase token, but whether that token is actually saved
+// in our database (that's what the server sends to). If the browser has a
+// valid token but it's missing from the database — e.g. an earlier save
+// silently failed — this repairs it by re-saving, so the toggle can't get
+// stuck showing "on" while nothing would actually be delivered.
+export async function getPushSubscriptionState(user, coupleId) {
   const messaging = await getMessagingIfSupported()
   if (!messaging) return { supported: false, permission: 'unsupported', subscribed: false }
 
@@ -35,7 +41,20 @@ export async function getPushSubscriptionState() {
   if (!registration) return { supported: true, permission, subscribed: false }
 
   const token = await currentToken(messaging, registration)
-  return { supported: true, permission, subscribed: !!token }
+  if (!token) return { supported: true, permission, subscribed: false }
+
+  const { data } = await supabase.from('fcm_tokens').select('token').eq('token', token).maybeSingle()
+  if (data) return { supported: true, permission, subscribed: true }
+
+  // Token exists locally but not in the database — try to repair it.
+  if (user && coupleId) {
+    const { error } = await supabase
+      .from('fcm_tokens')
+      .upsert({ user_id: user.id, couple_id: coupleId, token }, { onConflict: 'token' })
+    if (!error) return { supported: true, permission, subscribed: true }
+  }
+
+  return { supported: true, permission, subscribed: false }
 }
 
 export async function enablePush(user, coupleId) {
