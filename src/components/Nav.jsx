@@ -9,7 +9,7 @@ const items = [
   { to: '/canvas', label: 'Canvas', Icon: CanvasIcon },
   { to: '/photos', label: 'Photos', Icon: PhotoIcon },
   { to: '/chat', label: 'Chat', Icon: MessageIcon },
-  { to: '/quizzes', label: 'Quiz', Icon: QuizIcon },
+  { to: '/play', label: 'Play', Icon: QuizIcon },
   { to: '/location', label: 'Distance', Icon: MapPinIcon },
   { to: '/music', label: 'Mood', Icon: HeadphonesIcon },
   { to: '/notes', label: 'Notes', Icon: MailIcon },
