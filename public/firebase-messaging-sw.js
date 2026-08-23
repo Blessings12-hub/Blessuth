@@ -13,12 +13,13 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js')
 
 firebase.initializeApp({
-  apiKey: 'REPLACE_WITH_VITE_FIREBASE_API_KEY',
-  authDomain: 'REPLACE_WITH_VITE_FIREBASE_AUTH_DOMAIN',
-  projectId: 'REPLACE_WITH_VITE_FIREBASE_PROJECT_ID',
-  storageBucket: 'REPLACE_WITH_VITE_FIREBASE_STORAGE_BUCKET',
-  messagingSenderId: 'REPLACE_WITH_VITE_FIREBASE_MESSAGING_SENDER_ID',
-  appId: 'REPLACE_WITH_VITE_FIREBASE_APP_ID',
+  apiKey: "AIzaSyCovZwLVNvqvsEou4-gsNAraVtTT8BHSrU",
+  authDomain: "blessuth.firebaseapp.com",
+  projectId: "blessuth",
+  storageBucket: "blessuth.firebasestorage.app",
+  messagingSenderId: "56653414958",
+  appId: "1:56653414958:web:e6f34c507a0f75b35f15bf",
+  measurementId: "G-RC9MWNPEMY"
 })
 
 const messaging = firebase.messaging()
