@@ -1,9 +1,12 @@
-This update also REMOVES one file that is not included in this zip
-(since a zip can only add/update files, not delete them):
+Zips can't represent deleted files, so after unzipping and overwriting the
+files above into your project, manually delete this one:
 
-  public/OneSignalSDKWorker.js
+  App.jsx   (the copy sitting at your project ROOT, not the one in src/)
 
-Please delete that file from your project manually — it was only used by
-OneSignal's SDK, which this update replaces with native Web Push (VAPID).
-Leaving it in place is harmless (it just won't be loaded by anything
-anymore), but it's dead weight.
+This was a stale, unused leftover — your app has always actually run from
+src/App.jsx (that's what src/main.jsx imports, and that's the one this zip
+updates). The root-level copy was never loaded by the build; it was just
+out of date and sitting there unused. Confirmed via index.html, which
+only ever loads /src/main.jsx.
+
+You can delete this .txt file itself once you're done.
