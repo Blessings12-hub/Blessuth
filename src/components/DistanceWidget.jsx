@@ -53,7 +53,13 @@ export default function DistanceWidget() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couple?.id, partnerUid])
 
-  const distance = mine && theirs ? haversineKm(mine, theirs) : null
+  // Only trust a location row if lat/lng actually came through as real
+  // numbers — guards against showing a broken "NaN km" if a row exists but
+  // is somehow malformed, instead of silently failing.
+  const validPoint = (row) => row && Number.isFinite(row.lat) && Number.isFinite(row.lng)
+  const haveMine = validPoint(mine)
+  const haveTheirs = validPoint(theirs)
+  const distance = haveMine && haveTheirs ? haversineKm(mine, theirs) : null
   const myInitial = (profile?.display_name || '?')[0].toUpperCase()
   const theirInitial = (partnerName || '?')[0].toUpperCase()
 
@@ -68,7 +74,7 @@ export default function DistanceWidget() {
         <span className="distance-node theirs">{theirInitial}</span>
       </div>
 
-      {distance !== null ? (
+      {distance !== null && Number.isFinite(distance) ? (
         <>
           <div className="distance-widget-value">
             {Math.round(distance).toLocaleString()}
@@ -81,8 +87,18 @@ export default function DistanceWidget() {
       ) : (
         <>
           <div className="distance-widget-value muted">— km</div>
+          <div className="distance-widget-status">
+            <span className={haveMine ? 'ready' : 'pending'}>
+              {haveMine ? '✓ You shared' : "You haven't shared yet"}
+            </span>
+            <span className={haveTheirs ? 'ready' : 'pending'}>
+              {haveTheirs
+                ? `✓ ${partnerName || 'They'} shared`
+                : `Waiting for ${partnerName || 'them'} to share`}
+            </span>
+          </div>
           <Link to="/location" className="distance-widget-cta">
-            Share your location →
+            {haveMine ? 'Manage location sharing →' : 'Share your location →'}
           </Link>
         </>
       )}
