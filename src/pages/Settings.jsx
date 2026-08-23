@@ -233,8 +233,7 @@ export default function Settings() {
         </p>
         <textarea
           className="surprise-textarea"
-          rows={3}
-          maxLength={280}
+          rows={5}
           placeholder="Just thinking about you today..."
           value={surpriseInput}
           onChange={(e) => {
