@@ -1,12 +1,12 @@
 // Vercel Serverless Function: /api/notify-test
 //
-// Sends a single test push to every subscription saved for the requesting
-// account, using native Web Push (VAPID) — see api/_webpush.js. Always
-// returns real JSON with a specific reason on failure, unlike a raw
-// web-push crash that could come back as a blank/HTML error page.
+// Called from Settings when the person taps "Send test notification" —
+// sends a real push to every device they've registered, so they can
+// confirm push actually works end-to-end without waiting for their
+// partner to do something.
 
 import { createClient } from '@supabase/supabase-js'
-import { sendPushToUser } from './_webpush.js'
+import { sendPushToUser } from './_firebase-admin.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   const { userId } = req.body || {}
   if (!userId) {
-    res.status(400).json({ error: 'Missing userId.' })
+    res.status(400).json({ error: 'missing userId' })
     return
   }
 
@@ -25,30 +25,23 @@ export default async function handler(req, res) {
   try {
     const result = await sendPushToUser(supabase, userId, {
       title: 'Test notification',
-      body: 'If you can see this, push itself is working correctly.',
+      body: 'If you can see this, push is working! 🎉',
       url: '/',
     })
-
     if (result.total === 0) {
-      res.status(500).json({
-        error:
-          'No saved subscription found for this account. Make sure notifications are turned on in ' +
-          'Settings and the browser permission prompt was allowed, then try again.',
+      res.status(200).json({
+        error: 'No saved subscription found — try turning notifications off and back on in Settings.',
       })
       return
     }
-
     if (result.sent === 0) {
-      res.status(500).json({
-        error:
-          'Found a saved subscription but the push service rejected it (it may be stale). Try turning ' +
-          'notifications off and back on in Settings.',
+      res.status(200).json({
+        error: 'Push was rejected by every registered device — try re-enabling notifications in Settings.',
       })
       return
     }
-
-    res.status(200).json({ sent: true })
+    res.status(200).json({ ok: true, ...result })
   } catch (err) {
-    res.status(500).json({ error: err.message || 'Failed to send test notification.' })
+    res.status(200).json({ error: err.message })
   }
 }

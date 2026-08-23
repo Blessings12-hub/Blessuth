@@ -1,79 +1,19 @@
 // Vercel Serverless Function: /api/notify
 //
-// Triggered by a Supabase Database Webhook on INSERT into `messages`,
-// `notes`, `daily_answers`, `message_reactions`, or `quiz_answers`.
-// Figures out who should be notified (the other half of the couple) and
-// sends a push using native Web Push (VAPID) — see api/_webpush.js for
-// the actual sending + required environment variables.
+// Triggered by the notify_webhook() Postgres trigger (see
+// supabase-migration-v18.sql) on INSERT into `messages`, `notes`,
+// `daily_answers`, `message_reactions`, or `quiz_answers`. Figures out
+// who should be notified (the other half of the couple) and sends a real
+// push via Firebase Cloud Messaging — see api/_firebase-admin.js for the
+// actual sending + required environment variables.
+//
+// Reuses buildAlert()/senderIdOf() from src/notifications.js — the same
+// logic that drives the in-app alert banners — so the message text always
+// matches between the two.
 
 import { createClient } from '@supabase/supabase-js'
-import QUIZ_TOPICS from '../src/data/quizSets.js'
-import { sendPushToUser } from './_webpush.js'
-
-// `supabase` is only used by the daily_answers/message_reactions cases, to
-// look up the sender's display name (those tables don't store it on the
-// row itself).
-async function buildNotification(table, record, supabase) {
-  if (table === 'messages') {
-    return {
-      title: record.sender_name || 'New message',
-      body: (record.text || '').slice(0, 140) || 'sent you a message',
-      url: '/#/chat',
-      senderId: record.sender_id,
-      coupleId: record.couple_id,
-    }
-  }
-  if (table === 'notes') {
-    return {
-      title: record.from_name || 'New note',
-      body: (record.text || '').slice(0, 140) || 'sent you a note',
-      url: '/#/notes',
-      senderId: record.from_uid || record.sender_id,
-      coupleId: record.couple_id,
-    }
-  }
-  if (table === 'daily_answers') {
-    const { data } = await supabase
-      .from('profiles')
-      .select('display_name')
-      .eq('id', record.user_id)
-      .maybeSingle()
-    return {
-      title: data?.display_name ? `${data.display_name} answered today's question` : "Today's question was answered",
-      body: 'Tap to answer yours and see what they said.',
-      url: '/#/',
-      senderId: record.user_id,
-      coupleId: record.couple_id,
-    }
-  }
-  if (table === 'message_reactions') {
-    const { data } = await supabase
-      .from('profiles')
-      .select('display_name')
-      .eq('id', record.user_id)
-      .maybeSingle()
-    return {
-      title: data?.display_name ? `${data.display_name} reacted ${record.emoji}` : `New reaction ${record.emoji}`,
-      body: 'Tap to see it in Chat.',
-      url: '/#/chat',
-      senderId: record.user_id,
-      coupleId: record.couple_id,
-    }
-  }
-  if (table === 'quiz_answers') {
-    const [topicKey, subtopicKey] = String(record.quiz_key || '').split('.')
-    const subtopicTitle = QUIZ_TOPICS?.[topicKey]?.subtopics?.[subtopicKey]?.title || 'a quiz'
-    const name = record.user_name || 'Your partner'
-    return {
-      title: `${name} finished a quiz!`,
-      body: `They completed "${subtopicTitle}". Tap to answer and see how you compare.`,
-      url: '/#/quizzes',
-      senderId: record.user_id,
-      coupleId: record.couple_id,
-    }
-  }
-  return null
-}
+import { buildAlert, senderIdOf } from '../src/notifications.js'
+import { sendPushToUser } from './_firebase-admin.js'
 
 async function findRecipientId(coupleId, senderId, supabase) {
   const { data } = await supabase.from('couples').select('member1, member2').eq('id', coupleId).single()
@@ -93,29 +33,45 @@ export default async function handler(req, res) {
   }
 
   const { table, record } = req.body || {}
-  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-
-  const notification = record ? await buildNotification(table, record, supabase) : null
-
-  if (!notification || !notification.senderId || !notification.coupleId) {
+  if (!table || !record) {
     res.status(200).json({ skipped: true })
     return
   }
 
-  const recipientId = await findRecipientId(notification.coupleId, notification.senderId, supabase)
+  const senderId = senderIdOf(table, record)
+  const coupleId = record.couple_id
+  if (!senderId || !coupleId) {
+    res.status(200).json({ skipped: true })
+    return
+  }
+
+  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
+  const recipientId = await findRecipientId(coupleId, senderId, supabase)
   if (!recipientId) {
     res.status(200).json({ skipped: true })
     return
   }
 
+  const { data: senderProfile } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', senderId)
+    .maybeSingle()
+
+  const alert = buildAlert(table, record, senderProfile?.display_name)
+  if (!alert) {
+    res.status(200).json({ skipped: true })
+    return
+  }
+
   try {
-    const result = await sendPushToUser(supabase, recipientId, {
-      title: notification.title,
-      body: notification.body,
-      url: notification.url,
-    })
-    res.status(200).json({ attempted: true, ...result })
+    const result = await sendPushToUser(supabase, recipientId, alert)
+    res.status(200).json(result)
   } catch (err) {
-    res.status(500).json({ error: err.message || 'Failed to send notification.' })
+    // Don't let a push failure look like a broken webhook to Supabase —
+    // log it and return 200 either way; the trigger doesn't retry.
+    console.error('push send failed:', err.message)
+    res.status(200).json({ error: err.message })
   }
 }
