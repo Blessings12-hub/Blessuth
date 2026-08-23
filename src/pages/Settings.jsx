@@ -34,7 +34,7 @@ function resizeImage(file, maxSize = 480, quality = 0.85) {
 }
 
 export default function Settings() {
-  const { user, profile, partnerName, logout, unpairCouple } = useAuth()
+  const { user, couple, profile, partnerName, logout, unpairCouple } = useAuth()
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -99,6 +99,39 @@ export default function Settings() {
     const next = !alertsOn
     setAlertsMuted(!next)
     setAlertsOn(next)
+  }
+
+  const myArmedSurprise = couple?.surprise_armed_by === user?.id
+  const [surpriseInput, setSurpriseInput] = useState('')
+  const [surpriseBusy, setSurpriseBusy] = useState(false)
+  const [surpriseSaved, setSurpriseSaved] = useState(false)
+
+  useEffect(() => {
+    setSurpriseInput(myArmedSurprise ? couple?.surprise_message || '' : '')
+    setSurpriseSaved(false)
+  }, [couple?.surprise_armed_at])
+
+  const surpriseSeen =
+    myArmedSurprise &&
+    couple?.surprise_seen_at &&
+    new Date(couple.surprise_seen_at) >= new Date(couple.surprise_armed_at)
+
+  async function armSurprise() {
+    setSurpriseBusy(true)
+    try {
+      await supabase
+        .from('couples')
+        .update({
+          surprise_message: surpriseInput.trim() || null,
+          surprise_armed_by: user.id,
+          surprise_armed_at: new Date().toISOString(),
+          surprise_seen_at: null,
+        })
+        .eq('id', couple.id)
+      setSurpriseSaved(true)
+    } finally {
+      setSurpriseBusy(false)
+    }
   }
 
   async function handleDisconnect() {
@@ -189,6 +222,40 @@ export default function Settings() {
             <span className="toggle-knob" />
           </span>
         </button>
+      </div>
+
+      <div className="settings-section">
+        <h3>Surprise {partnerName || 'them'}</h3>
+        <p className="subtitle">
+          Write a short message and it'll pop up as a little animated surprise the next time{' '}
+          {partnerName || 'they'} open the app — once. Send it again anytime, for a birthday, an
+          anniversary, or no reason at all.
+        </p>
+        <textarea
+          className="surprise-textarea"
+          rows={3}
+          maxLength={280}
+          placeholder="Just thinking about you today..."
+          value={surpriseInput}
+          onChange={(e) => {
+            setSurpriseInput(e.target.value)
+            setSurpriseSaved(false)
+          }}
+        />
+        <button className="link-btn small" onClick={armSurprise} disabled={surpriseBusy}>
+          {surpriseBusy ? 'Sending…' : myArmedSurprise && !surpriseSeen ? 'Update surprise' : 'Send surprise'}
+        </button>
+        {surpriseSaved && !surpriseSeen && (
+          <p className="subtitle small-note">
+            Queued — {partnerName || 'they'} will see it next time they open the app.
+          </p>
+        )}
+        {myArmedSurprise && surpriseSeen && !surpriseSaved && (
+          <p className="subtitle small-note">
+            {partnerName || 'They'} saw it on{' '}
+            {new Date(couple.surprise_seen_at).toLocaleDateString()}.
+          </p>
+        )}
       </div>
 
       <div className="settings-section danger">
