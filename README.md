@@ -135,16 +135,7 @@ FIREBASE_SERVICE_ACCOUNT=<paste the whole JSON file's contents here>
 This one is **not** prefixed `VITE_` — it must never be exposed to the
 browser, only to the serverless function that sends pushes.
 
-**e) Fill in the service worker's Firebase config**
-
-Open `public/firebase-messaging-sw.js` in this project and replace the 6
-placeholder values (`REPLACE_WITH_...`) with the exact same values from step
-(a) — this file can't read `VITE_` environment variables since the browser
-loads it directly, so the values have to be pasted in as plain text here too.
-They're the same public values as the `VITE_FIREBASE_*` vars above, so this
-is safe.
-
-**f) Run the database migration and redeploy**
+**e) Run the database migration and redeploy**
 
 1. Run `supabase-migration-v18.sql` in Supabase's SQL Editor (adds the table
    push tokens are stored in, and reconnects the trigger that calls
@@ -152,7 +143,12 @@ is safe.
 2. Redeploy on Vercel so the new environment variables take effect — your
    project → **Deployments** → ⋯ on the latest one → **Redeploy**.
 
-**g) Turn it on as a user**
+(`public/firebase-messaging-sw.js` handles incoming pushes directly via the
+standard Push API rather than Firebase's own service worker helper — more
+reliable on Safari/iOS — so there's no config to fill in there. Nothing to
+edit in that file.)
+
+**f) Turn it on as a user**
 
 Open **Settings** in the app → **Notifications** → toggle on **"Turn on push
 notifications"** → allow the browser's permission prompt. Use **"Send test
