@@ -1,38 +1,39 @@
-// Required by Firebase Cloud Messaging for background push — this is what
-// lets a notification show up even when Blessuth isn't open. It's loaded
-// directly by the browser (not bundled by Vite), so it can't read the
-// VITE_FIREBASE_* env vars from src/firebase.js — the same public config
-// values are just pasted in again below.
+// Handles incoming push events directly via the standard Push API, rather
+// than through Firebase's compat SDK's built-in handler.
 //
-// Fill these in from Firebase Console → Project Settings → General →
-// "Your apps" → Web app → SDK setup and configuration. They're the exact
-// same values as the VITE_FIREBASE_* env vars in Vercel/.env — all public,
-// safe to have in this static file.
+// Why: Safari/iOS requires a push notification to be displayed
+// *immediately and synchronously* inside the push event's waitUntil(), or
+// iOS treats it as "invisible" — the push silently never shows, and after
+// a few of these iOS can even revoke notification permission for the site
+// entirely. Firebase's own background-message handling has a documented,
+// still-open reliability issue here (firebase/firebase-js-sdk#8010), so
+// this file skips it and calls showNotification() directly ourselves.
+//
+// No Firebase library is needed in this file at all — once a push
+// subscription exists (created client-side via the Firebase JS SDK's
+// getToken(), see src/push.js), the browser delivers pushes as plain Push
+// API events regardless of what library created the subscription.
 
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js')
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js')
+self.addEventListener('push', (event) => {
+  let payload = {}
+  try {
+    payload = event.data ? event.data.json() : {}
+  } catch {
+    payload = {}
+  }
 
-firebase.initializeApp({
-  apiKey: "AIzaSyCovZwLVNvqvsEou4-gsNAraVtTT8BHSrU",
-  authDomain: "blessuth.firebaseapp.com",
-  projectId: "blessuth",
-  storageBucket: "blessuth.firebasestorage.app",
-  messagingSenderId: "56653414958",
-  appId: "1:56653414958:web:e6f34c507a0f75b35f15bf"
-})
-
-const messaging = firebase.messaging()
-
-messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || 'Blessuth'
-  const body = payload.notification?.body || ''
+  const title = payload.notification?.title || payload.data?.title || 'Blessuth'
+  const body = payload.notification?.body || payload.data?.body || ''
   const link = payload.fcmOptions?.link || payload.data?.link || '/'
-  self.registration.showNotification(title, {
-    body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    data: { link },
-  })
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data: { link },
+    })
+  )
 })
 
 self.addEventListener('notificationclick', (event) => {
