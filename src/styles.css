@@ -799,6 +799,52 @@ a {
   grid-column: 1 / -1;
 }
 
+/* ---- Play hub (Quizzes vs Games tabs) ---- */
+.play-tabs {
+  display: flex;
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 4px;
+  margin-bottom: 16px;
+  gap: 4px;
+}
+
+.play-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 9px 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.play-tab.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.games-coming-soon {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--muted);
+}
+
+.games-coming-soon-icon {
+  font-size: 2.4rem;
+  margin-bottom: 10px;
+}
+
+.games-coming-soon-text {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
 /* ---- Quiz hub ---- */
 .overall-compat-banner {
   background: linear-gradient(135deg, var(--teal), #256b6b);

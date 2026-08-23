@@ -9,7 +9,7 @@ import Pair from './pages/Pair'
 import Dashboard from './pages/Dashboard'
 import Canvas from './pages/Canvas'
 import Photos from './pages/Photos'
-import Quizzes from './pages/Quizzes'
+import Play from './pages/Play'
 import LocationPage from './pages/LocationPage'
 import Music from './pages/Music'
 import Notes from './pages/Notes'
@@ -66,11 +66,12 @@ function AppRoutes() {
           </Gate>
         }
       />
+      <Route path="/quizzes" element={<Navigate to="/play" replace />} />
       <Route
-        path="/quizzes"
+        path="/play"
         element={
           <Gate>
-            <Quizzes />
+            <Play />
           </Gate>
         }
       />
