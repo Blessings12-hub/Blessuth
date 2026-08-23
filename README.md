@@ -18,11 +18,11 @@ Supabase's free tier, no credit card required).
 2. Open `supabase.sql` from this project, copy the whole file, paste it in, and click **Run**.
    This creates all the tables, security rules, and a `pair_with_code` function in one go.
 3. Then run each `supabase-migration-vN.sql` file in this project, in order (v2 through
-   v16), the same way — new query, paste, Run. Each one adds a feature that shipped
+   v18), the same way — new query, paste, Run. Each one adds a feature that shipped
    after the original `supabase.sql`. `v9` also creates the `avatars` storage bucket for
    profile photos automatically — no separate dashboard step needed for that one, unlike
-   the `photos` bucket below. `v16` turns on notifications (step 6) — quick either way,
-   just don't skip it or you won't get in-app alerts.
+   the `photos` bucket below. `v16` and `v18` together set up notifications (step 6) —
+   don't skip either or notifications won't work.
 4. Go to **Storage** (left sidebar) → **New bucket** → name it exactly `photos` →
    leave "Public bucket" **unchecked** → Create.
 5. For frictionless testing, go to **Authentication → Providers → Email** and turn
@@ -60,35 +60,111 @@ prefer not to use git commands.)
    from your `.env`.
 4. Deploy. You'll get a live `.vercel.app` URL.
 
-## 6. Notifications (nothing to configure)
+## 6. Notifications
 
-Blessuth shows an in-app banner when your partner sends a message, leaves a
-note, reacts, answers today's question, or finishes a quiz — powered
-directly by Supabase Realtime (a WebSocket connection from the browser to
-your database, included free on Supabase's free tier). There's no VAPID
-keys, no webhook secret, no service worker, and no serverless function
-involved — it just works once you've run the database migrations below.
+Blessuth has two layers of notifications, and you get both automatically once
+you've set this up:
 
-**The only setup step:** run `supabase-migration-v16.sql` (Supabase →
-**SQL Editor** → **New query** → paste the file's contents → **Run**). It
-turns on Realtime for the tables the app watches.
+- **In-app banners** — instant, no setup, powered by Supabase Realtime. Shows
+  while the app is open. (This is what `v16` set up — if you already ran it,
+  nothing more to do for this layer.)
+- **Real push** — shows up even when the app is closed or your phone is
+  locked, powered by **Firebase Cloud Messaging (FCM)**. This is the layer
+  that needs the setup below. FCM is Google's free, unlimited push
+  infrastructure — the same transport nearly every push notification service
+  (OneSignal included) runs on under the hood, but used directly here with no
+  vendor account or dashboard needed beyond Firebase's own free console.
 
-If you'd previously started setting up push notifications (VAPID keys, a
-Database Webhook, or `supabase-notify-triggers.sql`) in an earlier version
-of this project, `v16` also tears all of that down for you — it's safe to
-run either way. Afterward you can delete the `VAPID_*`, `SUPABASE_SERVICE_ROLE_KEY`,
-and `NOTIFY_WEBHOOK_SECRET` environment variables from Vercel if you'd
-added them, and remove any "notify" webhook under Supabase →
-**Database → Webhooks** — none of it is used anymore.
+**a) Create a Firebase project (free, no credit card)**
 
-**The one tradeoff:** since this isn't real push, alerts only show up while
-Blessuth is actually open in a tab or as an installed app — not when the
-phone is locked or the app is fully closed. If you outgrow that later, real
-push notifications (Web Push/VAPID) are a bigger but doable addition — just
-ask.
+1. Go to https://console.firebase.google.com → **Create a project** (or **Add
+   project**) → give it any name → you can skip Google Analytics if asked →
+   **Create project**.
+2. Once it's ready, click the **web icon (`</>`)** on the project overview
+   page to register a web app → give it any nickname → **Register app**. You
+   don't need the Firebase Hosting option — skip it.
+3. You'll land on a screen showing a `firebaseConfig` object with values like
+   `apiKey`, `authDomain`, `projectId`, etc. Keep this tab open — you'll copy
+   these in step (c).
 
-You can mute the in-app banners from **Settings → Notifications** in the
-app if you'd rather not see them at all.
+**b) Turn on Cloud Messaging and generate the web push key**
+
+1. In the Firebase console, click the **gear icon → Project settings**.
+2. Go to the **Cloud Messaging** tab.
+3. Scroll to **Web Push certificates** → click **Generate key pair**. This
+   produces one key — copy it. (This is the only "key generation" step, and
+   it's a single button in a web page — no terminal needed.)
+
+**c) Add environment variables in Vercel**
+
+Go to your project on Vercel → **Settings → Environment Variables** and add
+each of these (all safe to expose to the browser — that's normal for
+Firebase's public config):
+
+```
+VITE_FIREBASE_API_KEY=<apiKey from step a>
+VITE_FIREBASE_AUTH_DOMAIN=<authDomain from step a>
+VITE_FIREBASE_PROJECT_ID=<projectId from step a>
+VITE_FIREBASE_STORAGE_BUCKET=<storageBucket from step a>
+VITE_FIREBASE_MESSAGING_SENDER_ID=<messagingSenderId from step a>
+VITE_FIREBASE_APP_ID=<appId from step a>
+VITE_FIREBASE_VAPID_KEY=<the key pair from step b>
+```
+
+Add these two as well — copy them from your local `.env` (they should
+already be there from step 3), Vercel just needs its own copy:
+
+```
+NOTIFY_WEBHOOK_SECRET=W0yZoiBBbDxdVXp6c19WEnwcmPpgmCBZ
+SUPABASE_SERVICE_ROLE_KEY=<from Supabase → Project Settings → API → service_role key>
+```
+
+**d) Generate a service account key (this is the private, server-only one)**
+
+1. Firebase console → **gear icon → Project settings → Service accounts**
+   tab.
+2. Click **Generate new private key** → confirm → it downloads a `.json`
+   file.
+3. Open that file (any text/notes app works) and copy its *entire contents*.
+4. In Vercel, add one more environment variable:
+
+```
+FIREBASE_SERVICE_ACCOUNT=<paste the whole JSON file's contents here>
+```
+
+This one is **not** prefixed `VITE_` — it must never be exposed to the
+browser, only to the serverless function that sends pushes.
+
+**e) Fill in the service worker's Firebase config**
+
+Open `public/firebase-messaging-sw.js` in this project and replace the 6
+placeholder values (`REPLACE_WITH_...`) with the exact same values from step
+(a) — this file can't read `VITE_` environment variables since the browser
+loads it directly, so the values have to be pasted in as plain text here too.
+They're the same public values as the `VITE_FIREBASE_*` vars above, so this
+is safe.
+
+**f) Run the database migration and redeploy**
+
+1. Run `supabase-migration-v18.sql` in Supabase's SQL Editor (adds the table
+   push tokens are stored in, and reconnects the trigger that calls
+   `/api/notify` on new messages/notes/reactions/answers/quiz completions).
+2. Redeploy on Vercel so the new environment variables take effect — your
+   project → **Deployments** → ⋯ on the latest one → **Redeploy**.
+
+**g) Turn it on as a user**
+
+Open **Settings** in the app → **Notifications** → toggle on **"Turn on push
+notifications"** → allow the browser's permission prompt. Use **"Send test
+notification"** to confirm it actually arrives. On iPhone, push only works
+for sites added to the Home Screen (Share → Add to Home Screen) — an open
+Safari tab alone can't receive push, which is an iOS limitation, not
+something this app can work around.
+
+**Debugging tip:** if a real push isn't arriving even though the test one
+worked, check that the trigger is actually firing — in Supabase's SQL
+Editor, run `select * from net._http_response order by id desc limit 20;`
+right after sending a message, and look for a non-200 response.
 
 ## 7. Use it
 
