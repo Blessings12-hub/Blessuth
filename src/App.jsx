@@ -2,6 +2,7 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Nav from './components/Nav'
 import InAppAlerts from './components/InAppAlerts'
+import WelcomeSurprise from './components/WelcomeSurprise'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Pair from './pages/Pair'
@@ -124,6 +125,7 @@ export default function App() {
       <HashRouter>
         <div className="app-shell">
           <InAppAlerts />
+          <WelcomeSurprise />
           <AppRoutes />
           <Nav />
         </div>

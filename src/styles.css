@@ -513,6 +513,122 @@ a {
   }
 }
 
+/* ---- Welcome surprise (one-time animated reveal) ---- */
+.surprise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 20%, rgba(244, 162, 89, 0.35), rgba(35, 41, 70, 0.88) 70%);
+  backdrop-filter: blur(2px);
+  animation: surprise-fade-in 0.35s ease-out;
+  overflow: hidden;
+}
+
+.surprise-overlay.dismissing {
+  animation: surprise-fade-out 0.25s ease-in forwards;
+}
+
+.surprise-hearts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.surprise-heart {
+  position: absolute;
+  bottom: -10%;
+  opacity: 0;
+  animation-name: surprise-heart-rise;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+}
+
+.surprise-card {
+  position: relative;
+  background: var(--surface);
+  border-radius: 24px;
+  padding: 36px 28px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  animation: surprise-card-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+}
+
+.surprise-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+
+.surprise-message {
+  font-family: 'Fraunces', serif;
+  font-size: 1.25rem;
+  line-height: 1.5;
+  color: var(--ink);
+  margin: 0 0 24px;
+  white-space: pre-wrap;
+}
+
+.surprise-close {
+  background: var(--teal);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 24px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+@keyframes surprise-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes surprise-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes surprise-card-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes surprise-heart-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift), -110vh);
+  }
+}
+
 /* ---- Bottom nav ---- */
 .bottom-nav {
   position: fixed;
@@ -1752,6 +1868,17 @@ a {
 
 .settings-row + .settings-row {
   border-top: 1px solid var(--border);
+}
+
+.surprise-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  resize: vertical;
+  margin-bottom: 10px;
+  box-sizing: border-box;
 }
 
 .danger-btn {
