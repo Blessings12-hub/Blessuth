@@ -261,8 +261,7 @@ export default function Quizzes() {
     const battle = computeBattle()
 
     return (
-      <div className="screen with-nav">
-        <h2>Couple Quizzes</h2>
+      <>
         <p className="subtitle">
           Answer for yourself, then guess {partnerName || 'your partner'}'s answer — find out how well you really
           know each other.
@@ -322,7 +321,7 @@ export default function Quizzes() {
             )
           })}
         </div>
-      </div>
+      </>
     )
   }
 
@@ -330,7 +329,7 @@ export default function Quizzes() {
   if (!activeSubtopic) {
     const topic = QUIZ_TOPICS[activeTopic]
     return (
-      <div className="screen with-nav">
+      <>
         <button className="link-btn" onClick={() => setActiveTopic(null)}>
           ← Back to topics
         </button>
@@ -371,7 +370,7 @@ export default function Quizzes() {
             )
           })}
         </div>
-      </div>
+      </>
     )
   }
 
@@ -383,7 +382,7 @@ export default function Quizzes() {
   const showWaiting = status.mine?.answers?.length === subtopic.questions.length && !status.done && !retaking
 
   return (
-    <div className="screen with-nav">
+    <>
       <button
         className="link-btn"
         onClick={() => {
@@ -437,7 +436,7 @@ export default function Quizzes() {
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
 
