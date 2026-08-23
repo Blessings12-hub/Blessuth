@@ -18,8 +18,7 @@ firebase.initializeApp({
   projectId: "blessuth",
   storageBucket: "blessuth.firebasestorage.app",
   messagingSenderId: "56653414958",
-  appId: "1:56653414958:web:e6f34c507a0f75b35f15bf",
-  measurementId: "G-RC9MWNPEMY"
+  appId: "1:56653414958:web:e6f34c507a0f75b35f15bf"
 })
 
 const messaging = firebase.messaging()
