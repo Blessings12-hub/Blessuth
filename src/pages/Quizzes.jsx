@@ -5,9 +5,9 @@ import QUIZ_TOPICS from '../data/quizSets'
 
 function scoreTier(pct) {
   if (pct === 100) return 'Perfect — you know them completely.'
-  if (pct >= 80) return 'You really know them. Impressive.'
+  if (pct >= 80) return "You really know them. Impressive."
   if (pct >= 60) return 'Pretty good instincts, with a few surprises.'
-  if (pct >= 40) return 'Some solid guesses, some real surprises.'
+  if (pct >= 40) return "Some solid guesses, some real surprises."
   return "Lots to learn about each other — that's the fun part."
 }
 
@@ -15,6 +15,7 @@ function fillPartner(text, partnerName) {
   return text.replace(/\{partner\}/g, partnerName || 'your partner')
 }
 
+// Animates a number counting up from 0 to `value` over roughly `duration` ms.
 function useCountUp(value, duration = 700) {
   const [display, setDisplay] = useState(0)
   useEffect(() => {
@@ -52,6 +53,9 @@ function Confetti() {
   )
 }
 
+// quiz_key format: "<topicKey>.<subtopicKey>" — keeps every subtopic
+// independently answerable/retakeable under the existing (couple_id,
+// quiz_key, user_id) primary key.
 function quizKey(topicKey, subtopicKey) {
   return `${topicKey}.${subtopicKey}`
 }
@@ -61,9 +65,11 @@ export default function Quizzes() {
   const [allAnswers, setAllAnswers] = useState([])
   const [activeTopic, setActiveTopic] = useState(null)
   const [activeSubtopic, setActiveSubtopic] = useState(null)
-  const [mode, setMode] = useState(null) // null | 'guess' | 'self'
+  const [round, setRound] = useState('self') // 'self' | 'guess'
   const [step, setStep] = useState(0)
-  const [selections, setSelections] = useState([])
+  const [selfSelections, setSelfSelections] = useState([])
+  const [guessSelections, setGuessSelections] = useState([])
+  const [retaking, setRetaking] = useState(false)
 
   async function loadAll() {
     if (!couple) return
@@ -86,171 +92,211 @@ export default function Quizzes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couple?.id])
 
-  // Each direction (my guess-score, their guess-score, in-sync %) is
-  // computable independently — I don't need to have answered for myself to
-  // see how well I know them, and they don't need to have guessed yet for
-  // me to see my own score. That's what lets this be fully asynchronous:
-  // whoever gets to a subtopic first can still make progress.
+  // A submission only counts as "done" once it has both a self-answer and a
+  // guess for every question — a row saved before this guessing mechanic
+  // existed only has `answers`, so it's treated as not-yet-done rather than
+  // shown as a broken/incomplete result.
   function statusFor(topicKey, subtopicKey) {
     const key = quizKey(topicKey, subtopicKey)
-    const qs = QUIZ_TOPICS[topicKey].subtopics[subtopicKey].questions
-    const qCount = qs.length
+    const qCount = QUIZ_TOPICS[topicKey].subtopics[subtopicKey].questions.length
     const mine = allAnswers.find((r) => r.quiz_key === key && r.user_id === user.id)
     const theirs = allAnswers.find((r) => r.quiz_key === key && r.user_id === partnerUid)
-    const complete = (arr) => Array.isArray(arr) && arr.length === qCount
-
-    const myAnswersDone = complete(mine?.answers)
-    const myGuessesDone = complete(mine?.guesses)
-    const theirAnswersDone = complete(theirs?.answers)
-    const theirGuessesDone = complete(theirs?.guesses)
-
-    let myScore = null
-    if (myGuessesDone && theirAnswersDone) {
-      let correct = 0
-      qs.forEach((_, i) => {
-        if (mine.guesses[i] === theirs.answers[i]) correct++
-      })
-      myScore = Math.round((correct / qCount) * 100)
+    const complete = (r) => r && r.answers?.length === qCount && r.guesses?.length === qCount
+    if (!complete(mine) || !complete(theirs)) {
+      return { mine, theirs, done: false }
     }
-
-    let theirScore = null
-    if (theirGuessesDone && myAnswersDone) {
-      let correct = 0
-      qs.forEach((_, i) => {
-        if (theirs.guesses[i] === mine.answers[i]) correct++
-      })
-      theirScore = Math.round((correct / qCount) * 100)
+    const qs = QUIZ_TOPICS[topicKey].subtopics[subtopicKey].questions
+    let myGuessCorrect = 0
+    let theirGuessCorrect = 0
+    let inSync = 0
+    qs.forEach((_, i) => {
+      if (mine.guesses[i] === theirs.answers[i]) myGuessCorrect++
+      if (theirs.guesses[i] === mine.answers[i]) theirGuessCorrect++
+      if (mine.answers[i] === theirs.answers[i]) inSync++
+    })
+    // Battle mode: whoever guessed more of the other's real answers correctly
+    // wins this round. The round's timestamp (for streak ordering) is
+    // whichever of the two submissions landed last.
+    const winner = myGuessCorrect === theirGuessCorrect ? 'tie' : myGuessCorrect > theirGuessCorrect ? 'me' : 'partner'
+    const roundAt = [mine.updated_at, theirs.updated_at].filter(Boolean).sort().slice(-1)[0] || null
+    return {
+      mine,
+      theirs,
+      done: true,
+      myGuessPct: Math.round((myGuessCorrect / qs.length) * 100),
+      theirGuessPct: Math.round((theirGuessCorrect / qs.length) * 100),
+      inSyncPct: Math.round((inSync / qs.length) * 100),
+      myGuessCorrect,
+      theirGuessCorrect,
+      winner,
+      roundAt,
     }
+  }
 
-    let inSyncPct = null
-    if (myAnswersDone && theirAnswersDone) {
-      let same = 0
-      qs.forEach((_, i) => {
-        if (mine.answers[i] === theirs.answers[i]) same++
+  // Aggregates every completed subtopic into a running head-to-head score:
+  // points are total correct guesses, rounds are won/lost/tied per subtopic,
+  // and streak tracks consecutive round wins by the same person, most
+  // recent first (ties don't break a streak, they just don't extend it).
+  function computeBattle() {
+    let myPoints = 0
+    let theirPoints = 0
+    let myWins = 0
+    let theirWins = 0
+    let ties = 0
+    const rounds = []
+    Object.entries(QUIZ_TOPICS).forEach(([tk, t]) => {
+      Object.keys(t.subtopics).forEach((sk) => {
+        const s = statusFor(tk, sk)
+        if (!s.done) return
+        myPoints += s.myGuessCorrect
+        theirPoints += s.theirGuessCorrect
+        if (s.winner === 'me') myWins++
+        else if (s.winner === 'partner') theirWins++
+        else ties++
+        rounds.push({ winner: s.winner, at: s.roundAt || '' })
       })
-      inSyncPct = Math.round((same / qCount) * 100)
+    })
+    rounds.sort((a, b) => a.at.localeCompare(b.at))
+    let streakWinner = null
+    let streakCount = 0
+    for (let i = rounds.length - 1; i >= 0; i--) {
+      const w = rounds[i].winner
+      if (w === 'tie') continue
+      if (streakWinner === null) {
+        streakWinner = w
+        streakCount = 1
+      } else if (w === streakWinner) {
+        streakCount++
+      } else {
+        break
+      }
     }
-
-    return { mine, theirs, myAnswersDone, myGuessesDone, theirAnswersDone, theirGuessesDone, myScore, theirScore, inSyncPct }
+    return {
+      myPoints,
+      theirPoints,
+      myWins,
+      theirWins,
+      ties,
+      streakWinner,
+      streakCount,
+      totalRounds: myWins + theirWins + ties,
+    }
   }
 
   function openSubtopic(topicKey, subtopicKey) {
     setActiveTopic(topicKey)
     setActiveSubtopic(subtopicKey)
-    setMode(null)
+    setRound('self')
     setStep(0)
-    setSelections([])
+    setSelfSelections([])
+    setGuessSelections([])
+    setRetaking(false)
   }
 
-  function startGuessing() {
-    setMode('guess')
+  function retake() {
+    setRound('self')
     setStep(0)
-    setSelections([])
+    setSelfSelections([])
+    setGuessSelections([])
+    setRetaking(true)
   }
 
-  function startSelfAnswering() {
-    setMode('self')
-    setStep(0)
-    setSelections([])
-  }
-
-  async function submitGuesses(finalGuesses) {
-    const status = statusFor(activeTopic, activeSubtopic)
-    await supabase.from('quiz_answers').upsert({
-      couple_id: couple.id,
-      quiz_key: quizKey(activeTopic, activeSubtopic),
-      user_id: user.id,
-      user_name: profile?.display_name || 'You',
-      answers: status.mine?.answers || [],
-      guesses: finalGuesses,
-    })
-    setMode(null)
-  }
-
-  async function submitSelfAnswers(finalAnswers) {
-    const status = statusFor(activeTopic, activeSubtopic)
+  async function submit(finalAnswers, finalGuesses) {
     await supabase.from('quiz_answers').upsert({
       couple_id: couple.id,
       quiz_key: quizKey(activeTopic, activeSubtopic),
       user_id: user.id,
       user_name: profile?.display_name || 'You',
       answers: finalAnswers,
-      guesses: status.mine?.guesses || [],
+      guesses: finalGuesses,
+      updated_at: new Date().toISOString(),
     })
-    setMode(null)
+    setRetaking(false)
   }
 
   function pick(optionIndex) {
     const questions = QUIZ_TOPICS[activeTopic].subtopics[activeSubtopic].questions
     const lastStep = step === questions.length - 1
-    const next = [...selections]
-    next[step] = optionIndex
-    setSelections(next)
-    setTimeout(() => {
+
+    if (round === 'self') {
+      const next = [...selfSelections]
+      next[step] = optionIndex
+      setSelfSelections(next)
+      setTimeout(() => {
+        if (lastStep) {
+          setRound('guess')
+          setStep(0)
+        } else {
+          setStep(step + 1)
+        }
+      }, 220)
+    } else {
+      const next = [...guessSelections]
+      next[step] = optionIndex
+      setGuessSelections(next)
       if (lastStep) {
-        if (mode === 'guess') submitGuesses(next)
-        else submitSelfAnswers(next)
+        setTimeout(() => submit(selfSelections, next), 220)
       } else {
-        setStep(step + 1)
+        setTimeout(() => setStep(step + 1), 220)
       }
-    }, 220)
+    }
   }
 
   // ---------- Hub: list of topics ----------
   if (!activeTopic) {
     let doneCount = 0
     let totalSubtopics = 0
-    let scoreSum = 0
-    const readyToGuess = []
+    let syncSum = 0
     Object.entries(QUIZ_TOPICS).forEach(([tk, t]) => {
-      Object.entries(t.subtopics).forEach(([sk, sub]) => {
+      Object.keys(t.subtopics).forEach((sk) => {
         totalSubtopics++
         const s = statusFor(tk, sk)
-        if (s.myScore !== null) {
+        if (s.done) {
           doneCount++
-          scoreSum += s.myScore
-        } else if (s.theirAnswersDone) {
-          readyToGuess.push({ tk, sk, title: `${t.title} · ${sub.title}` })
+          syncSum += s.inSyncPct
         }
       })
     })
-    const overallPct = doneCount ? Math.round(scoreSum / doneCount) : null
+    const overallPct = doneCount ? Math.round(syncSum / doneCount) : null
+    const battle = computeBattle()
 
     return (
       <div className="screen with-nav">
         <h2>Couple Quizzes</h2>
-        <p className="subtitle">Guess {partnerName || 'your partner'}'s answers — find out how well you really know them.</p>
+        <p className="subtitle">
+          Answer for yourself, then guess {partnerName || 'your partner'}'s answer — find out how well you really
+          know each other.
+        </p>
 
-        {overallPct !== null && (
-          <div className="overall-compat-banner">
-            {doneCount} of {totalSubtopics} guessed · you know {partnerName || 'them'} {overallPct}% overall
-          </div>
-        )}
-
-        {readyToGuess.length > 0 && (
-          <div className="quiz-ready-banner">
-            <div className="quiz-ready-title">
-              🎯 {partnerName || 'Your partner'} has answered {readyToGuess.length === 1 ? 'this' : 'these'} — ready
-              for you to guess:
+        {battle.totalRounds > 0 && (
+          <div className="battle-scoreboard">
+            <div className="battle-score-row">
+              <div className={'battle-side' + (battle.myPoints > battle.theirPoints ? ' ahead' : '')}>
+                <div className="battle-score-num">{battle.myPoints}</div>
+                <div className="battle-score-label">You</div>
+              </div>
+              <div className="battle-vs">VS</div>
+              <div className={'battle-side' + (battle.theirPoints > battle.myPoints ? ' ahead' : '')}>
+                <div className="battle-score-num">{battle.theirPoints}</div>
+                <div className="battle-score-label">{partnerName || 'Partner'}</div>
+              </div>
             </div>
-            <div className="quiz-ready-list">
-              {readyToGuess.map(({ tk, sk, title }) => (
-                <button key={`${tk}.${sk}`} className="quiz-ready-chip" onClick={() => openSubtopic(tk, sk)}>
-                  {title}
-                </button>
-              ))}
-            </div>
+            <p className="battle-summary">
+              {battle.myWins}–{battle.theirWins}–{battle.ties} rounds (win–loss–tie) · {overallPct}% in sync overall
+            </p>
+            {battle.streakCount >= 2 && (
+              <p className="battle-streak">
+                🔥 {battle.streakWinner === 'me' ? 'You' : partnerName || 'Partner'}{' '}
+                {battle.streakWinner === 'me' ? 'are' : 'is'} on a {battle.streakCount}-round win streak
+              </p>
+            )}
           </div>
         )}
 
         <div className="quiz-hub-grid">
           {Object.entries(QUIZ_TOPICS).map(([topicKey, topic], i) => {
             const subtopicKeys = Object.keys(topic.subtopics)
-            const guessedHere = subtopicKeys.filter((sk) => statusFor(topicKey, sk).myScore !== null).length
-            const readyHere = subtopicKeys.filter((sk) => {
-              const s = statusFor(topicKey, sk)
-              return s.myScore === null && s.theirAnswersDone
-            }).length
+            const doneHere = subtopicKeys.filter((sk) => statusFor(topicKey, sk).done).length
             const questionCount = subtopicKeys.reduce((n, sk) => n + topic.subtopics[sk].questions.length, 0)
             return (
               <button
@@ -263,13 +309,11 @@ export default function Quizzes() {
                 <div className="quiz-tile-count">
                   {subtopicKeys.length} subtopics · {questionCount} questions
                 </div>
-                {readyHere > 0 ? (
-                  <div className="quiz-tile-badge new">🎯 {readyHere} ready to guess</div>
-                ) : guessedHere === subtopicKeys.length ? (
-                  <div className="quiz-tile-badge done">All guessed</div>
-                ) : guessedHere > 0 ? (
+                {doneHere === subtopicKeys.length ? (
+                  <div className="quiz-tile-badge done">All done</div>
+                ) : doneHere > 0 ? (
                   <div className="quiz-tile-badge waiting">
-                    {guessedHere}/{subtopicKeys.length} guessed
+                    {doneHere}/{subtopicKeys.length} done
                   </div>
                 ) : (
                   <div className="quiz-tile-badge new">Not started</div>
@@ -305,11 +349,20 @@ export default function Quizzes() {
               >
                 <div className="quiz-tile-title">{subtopic.title}</div>
                 <div className="quiz-tile-count">{subtopic.questions.length} questions</div>
-                {status.myScore !== null ? (
-                  <div className="quiz-tile-badge done">{status.myScore}% you guessed right</div>
-                ) : status.theirAnswersDone ? (
-                  <div className="quiz-tile-badge new">🎯 Ready to guess</div>
-                ) : status.myAnswersDone ? (
+                {status.done ? (
+                  <div
+                    className={
+                      'quiz-tile-badge done' +
+                      (status.winner === 'me' ? ' won' : status.winner === 'partner' ? ' lost' : '')
+                    }
+                  >
+                    {status.winner === 'me'
+                      ? `🏆 You won · ${status.myGuessPct}%`
+                      : status.winner === 'partner'
+                        ? `${partnerName || 'Partner'} won · ${status.myGuessPct}%`
+                        : `🤝 Tied · ${status.myGuessPct}%`}
+                  </div>
+                ) : status.mine ? (
                   <div className="quiz-tile-badge waiting">Waiting for {partnerName || 'partner'}</div>
                 ) : (
                   <div className="quiz-tile-badge new">Not started</div>
@@ -322,103 +375,35 @@ export default function Quizzes() {
     )
   }
 
-  // ---------- Subtopic ----------
+  // ---------- Subtopic: taking / waiting / results ----------
   const topic = QUIZ_TOPICS[activeTopic]
   const subtopic = topic.subtopics[activeSubtopic]
   const status = statusFor(activeTopic, activeSubtopic)
+  const showResults = status.done && !retaking
+  const showWaiting = status.mine?.answers?.length === subtopic.questions.length && !status.done && !retaking
 
   return (
     <div className="screen with-nav">
       <button
         className="link-btn"
         onClick={() => {
-          if (mode) setMode(null)
-          else setActiveSubtopic(null)
+          setActiveSubtopic(null)
         }}
       >
-        ← Back {mode ? `to ${subtopic.title}` : `to ${topic.title}`}
+        ← Back to {topic.title}
       </button>
       <h2>{subtopic.title}</h2>
 
-      {!mode && (
-        <>
-          <div className="quiz-action-grid">
-            <button
-              className="quiz-action-card"
-              disabled={!status.theirAnswersDone}
-              onClick={status.theirAnswersDone ? startGuessing : undefined}
-            >
-              <div className="quiz-action-title">Guess {partnerName || 'them'}</div>
-              {status.myScore !== null ? (
-                <div className="quiz-action-status done">✓ You knew them: {status.myScore}%</div>
-              ) : status.theirAnswersDone ? (
-                <div className="quiz-action-status ready">Ready — tap to guess</div>
-              ) : (
-                <div className="quiz-action-status locked">
-                  Waiting for {partnerName || 'them'} to answer these first
-                </div>
-              )}
-            </button>
-
-            <button className="quiz-action-card secondary" onClick={startSelfAnswering}>
-              <div className="quiz-action-title">Answer for yourself</div>
-              {status.myAnswersDone ? (
-                <div className="quiz-action-status done">
-                  ✓ Answered{status.theirScore !== null ? ` — they knew you: ${status.theirScore}%` : ''}
-                </div>
-              ) : (
-                <div className="quiz-action-status ready">So {partnerName || 'they'} can guess these</div>
-              )}
-            </button>
-          </div>
-
-          {status.myScore !== null && (
-            <>
-              <div className="quiz-score-card">
-                {status.myScore === 100 && <Confetti />}
-                <div className="quiz-score-pct">{useCountUp(status.myScore)}%</div>
-                <div className="quiz-score-label">you knew {partnerName || 'them'}</div>
-                <p className="quiz-score-text">{scoreTier(status.myScore)}</p>
-                {status.inSyncPct !== null && (
-                  <p className="quiz-score-subtext">Also {status.inSyncPct}% in sync on your own answers.</p>
-                )}
-              </div>
-
-              <div className="quiz-results">
-                {subtopic.questions.map(([, guessQ, options], i) => {
-                  const theirAnswer = status.theirs.answers[i]
-                  const myGuess = status.mine.guesses[i]
-                  const right = myGuess === theirAnswer
-                  return (
-                    <div key={i} className="quiz-result-row quiz-result-enter" style={{ animationDelay: `${i * 0.06}s` }}>
-                      <p className="quiz-question">{fillPartner(guessQ, partnerName)}</p>
-                      <div className="quiz-answer-pair">
-                        <div className="quiz-answer theirs">
-                          <span className="label">{partnerName || 'Partner'} answered</span>
-                          {options[theirAnswer]}
-                        </div>
-                        <div className={'quiz-answer mine' + (right ? ' matched' : '')}>
-                          <span className="label">You guessed</span>
-                          {options[myGuess]} {right ? '✓' : '✗'}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              <button className="link-btn" onClick={startGuessing}>
-                Retake this quiz
-              </button>
-            </>
-          )}
-        </>
-      )}
-
-      {mode && (
+      {showResults ? (
+        <QuizResults set={subtopic} status={status} partnerName={partnerName} onRetake={retake} />
+      ) : showWaiting ? (
+        <p className="empty-state">
+          You've answered and guessed! Waiting for {partnerName || 'your partner'} to finish this one too.
+        </p>
+      ) : (
         <div className="quiz-taking">
           <div className="quiz-round-label">
-            {mode === 'guess' ? `Guessing ${partnerName || 'your partner'}` : 'Your own answers'}
+            {round === 'self' ? 'Round 1 · About you' : `Round 2 · Guessing ${partnerName || 'your partner'}`}
           </div>
           <div className="quiz-progress-track">
             <div
@@ -429,17 +414,20 @@ export default function Quizzes() {
           <div className="quiz-progress-label">
             Question {step + 1} of {subtopic.questions.length}
           </div>
-          <div key={step} className="quiz-question-enter">
+          <div key={`${round}-${step}`} className="quiz-question-enter">
             <p className="quiz-taking-question">
-              {mode === 'guess'
-                ? fillPartner(subtopic.questions[step][1], partnerName)
-                : subtopic.questions[step][0]}
+              {round === 'self'
+                ? subtopic.questions[step][0]
+                : fillPartner(subtopic.questions[step][1], partnerName)}
             </p>
             <div className="quiz-options">
               {subtopic.questions[step][2].map((opt, i) => (
                 <button
                   key={i}
-                  className={'quiz-option' + (selections[step] === i ? ' selected' : '')}
+                  className={
+                    'quiz-option' +
+                    ((round === 'self' ? selfSelections[step] : guessSelections[step]) === i ? ' selected' : '')
+                  }
                   onClick={() => pick(i)}
                 >
                   {opt}
@@ -450,5 +438,74 @@ export default function Quizzes() {
         </div>
       )}
     </div>
+  )
+}
+
+function QuizResults({ set, status, partnerName, onRetake }) {
+  const displayMine = useCountUp(status.myGuessPct)
+  const displayTheirs = useCountUp(status.theirGuessPct)
+
+  return (
+    <>
+      <div className="quiz-score-card">
+        {(status.winner === 'me' || (status.myGuessPct === 100 && status.theirGuessPct === 100)) && <Confetti />}
+        <div className={'round-result-banner ' + status.winner}>
+          {status.winner === 'me' && `🏆 You won this round! ${status.myGuessCorrect}–${status.theirGuessCorrect}`}
+          {status.winner === 'partner' &&
+            `${partnerName || 'They'} won this round ${status.theirGuessCorrect}–${status.myGuessCorrect}`}
+          {status.winner === 'tie' && `🤝 Tied this round, ${status.myGuessCorrect}–${status.theirGuessCorrect}`}
+        </div>
+        <div className="quiz-score-dual">
+          <div>
+            <div className="quiz-score-pct">{displayMine}%</div>
+            <div className="quiz-score-label">you knew {partnerName || 'them'}</div>
+          </div>
+          <div>
+            <div className="quiz-score-pct">{displayTheirs}%</div>
+            <div className="quiz-score-label">{partnerName || 'they'} knew you</div>
+          </div>
+        </div>
+        <p className="quiz-score-text">{scoreTier(status.myGuessPct)}</p>
+        <p className="quiz-score-subtext">Also {status.inSyncPct}% in sync on your own answers.</p>
+      </div>
+
+      <div className="quiz-results">
+        {set.questions.map(([selfQ, , options], i) => {
+          const myAnswer = status.mine.answers[i]
+          const theirAnswer = status.theirs.answers[i]
+          const myGuessRight = status.mine.guesses[i] === theirAnswer
+          const theirGuessRight = status.theirs.guesses[i] === myAnswer
+          return (
+            <div key={i} className="quiz-result-row quiz-result-enter" style={{ animationDelay: `${i * 0.06}s` }}>
+              <p className="quiz-question">{selfQ}</p>
+              <div className="quiz-answer-pair">
+                <div className="quiz-answer mine">
+                  <span className="label">You answered</span>
+                  {options[myAnswer]}
+                </div>
+                <div className={'quiz-answer theirs' + (theirGuessRight ? ' matched' : '')}>
+                  <span className="label">{partnerName || 'Partner'} guessed</span>
+                  {options[status.theirs.guesses[i]]} {theirGuessRight ? '✓' : '✗'}
+                </div>
+              </div>
+              <div className="quiz-answer-pair">
+                <div className="quiz-answer theirs">
+                  <span className="label">{partnerName || 'Partner'} answered</span>
+                  {options[theirAnswer]}
+                </div>
+                <div className={'quiz-answer mine' + (myGuessRight ? ' matched' : '')}>
+                  <span className="label">You guessed</span>
+                  {options[status.mine.guesses[i]]} {myGuessRight ? '✓' : '✗'}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <button className="link-btn" onClick={onRetake}>
+        Retake this quiz
+      </button>
+    </>
   )
 }
