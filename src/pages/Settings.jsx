@@ -162,11 +162,6 @@ export default function Settings() {
   const [surpriseBusy, setSurpriseBusy] = useState(false)
   const [surpriseSaved, setSurpriseSaved] = useState(false)
 
-  useEffect(() => {
-    setSurpriseInput(myArmedSurprise ? couple?.surprise_message || '' : '')
-    setSurpriseSaved(false)
-  }, [couple?.surprise_armed_at])
-
   const surpriseSeen =
     myArmedSurprise &&
     couple?.surprise_seen_at &&
@@ -185,6 +180,11 @@ export default function Settings() {
         })
         .eq('id', couple.id)
       setSurpriseSaved(true)
+      // Clear the box right away — the message has been sent, so this isn't
+      // a draft sitting around. Without this, reopening Settings kept
+      // showing the same message back in the textarea, looking like it was
+      // still waiting to be sent.
+      setSurpriseInput('')
     } finally {
       setSurpriseBusy(false)
     }
@@ -334,18 +334,20 @@ export default function Settings() {
             setSurpriseSaved(false)
           }}
         />
-        <button className="link-btn small" onClick={armSurprise} disabled={surpriseBusy}>
-          {surpriseBusy ? 'Sending…' : myArmedSurprise && !surpriseSeen ? 'Update surprise' : 'Send surprise'}
+        <button className="link-btn small" onClick={armSurprise} disabled={surpriseBusy || !surpriseInput.trim()}>
+          {surpriseBusy ? 'Sending…' : 'Send surprise'}
         </button>
-        {surpriseSaved && !surpriseSeen && (
+        {surpriseSaved && (
+          <p className="subtitle small-note">Sent — {partnerName || 'they'} haven't opened it yet.</p>
+        )}
+        {!surpriseSaved && myArmedSurprise && !surpriseSeen && (
           <p className="subtitle small-note">
-            Queued — {partnerName || 'they'} will see it next time they open the app.
+            Sent — {partnerName || 'they'} will see it next time they open the app.
           </p>
         )}
-        {myArmedSurprise && surpriseSeen && !surpriseSaved && (
+        {!surpriseSaved && myArmedSurprise && surpriseSeen && (
           <p className="subtitle small-note">
-            {partnerName || 'They'} saw it on{' '}
-            {new Date(couple.surprise_seen_at).toLocaleDateString()}.
+            {partnerName || 'They'} saw it on {new Date(couple.surprise_seen_at).toLocaleDateString()}.
           </p>
         )}
       </div>
