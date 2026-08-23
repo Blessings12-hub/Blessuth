@@ -554,6 +554,8 @@ a {
   padding: 36px 28px;
   max-width: 380px;
   width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
   text-align: center;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
   animation: surprise-card-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
@@ -571,6 +573,7 @@ a {
   color: var(--ink);
   margin: 0 0 24px;
   white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .surprise-close {
