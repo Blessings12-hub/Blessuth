@@ -15,6 +15,7 @@ import Music from './pages/Music'
 import Notes from './pages/Notes'
 import Settings from './pages/Settings'
 import Chat from './pages/Chat'
+import Wishlist from './pages/Wishlist'
 
 function Gate({ children }) {
   const { user, profile, loading } = useAuth()
@@ -112,6 +113,14 @@ function AppRoutes() {
         element={
           <Gate>
             <Settings />
+          </Gate>
+        }
+      />
+      <Route
+        path="/wishlist"
+        element={
+          <Gate>
+            <Wishlist />
           </Gate>
         }
       />

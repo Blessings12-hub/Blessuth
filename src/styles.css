@@ -1434,6 +1434,131 @@ a {
   margin-bottom: 12px;
 }
 
+/* ---- Wishlist ---- */
+.wishlist-add-section {
+  margin-bottom: 18px;
+}
+
+.wishlist-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wishlist-form-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.wishlist-form-row .word-input {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.wishlist-form-or {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin: 2px 0;
+}
+
+.wishlist-preview {
+  border-radius: 12px;
+  overflow: hidden;
+  max-height: 200px;
+}
+
+.wishlist-preview img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+.wishlist-form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.wishlist-grid {
+  column-count: 2;
+  column-gap: 12px;
+}
+
+.wishlist-grid .empty-state {
+  column-span: all;
+}
+
+.wishlist-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 12px;
+  break-inside: avoid;
+}
+
+.wishlist-card-img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.wishlist-card-body {
+  padding: 10px 12px 12px;
+}
+
+.wishlist-card-title {
+  font-weight: 600;
+  font-size: 0.88rem;
+  margin: 0 0 4px;
+}
+
+.wishlist-card-price {
+  color: var(--sunset);
+  font-weight: 700;
+  font-size: 0.82rem;
+  margin: 0 0 4px;
+}
+
+.wishlist-card-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin: 0 0 8px;
+}
+
+.wishlist-card-link {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--teal);
+  margin-bottom: 8px;
+  text-decoration: none;
+}
+
+.wishlist-got-it-btn {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wishlist-got-it-btn.done {
+  background: #e4f3ee;
+  color: var(--teal);
+  border-color: var(--teal);
+}
+
 /* ---- Play hub (Quizzes vs Games tabs) ---- */
 .play-tabs {
   display: flex;
