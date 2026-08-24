@@ -1,8 +1,8 @@
 // Turns a freshly-inserted row (from messages / notes / daily_answers /
-// message_reactions / quiz_answers) into the title/body/url for an in-app
-// alert. `partnerName` is passed in by the caller (already known from
-// AuthContext) rather than looked up here, since this only ever runs for
-// events caused by your partner.
+// message_reactions / quiz_answers / wishlist_items) into the title/body/url
+// for an in-app alert. `partnerName` is passed in by the caller (already
+// known from AuthContext) rather than looked up here, since this only ever
+// runs for events caused by your partner.
 
 import QUIZ_TOPICS from './data/quizSets.js'
 
@@ -47,7 +47,15 @@ export function buildAlert(table, record, partnerName) {
     return {
       title: `${name} finished a quiz!`,
       body: `They completed "${subtopicTitle}". Tap to answer and see how you compare.`,
-      url: '/quizzes',
+      url: '/play',
+    }
+  }
+
+  if (table === 'wishlist_items') {
+    return {
+      title: `${name} added something to their wishlist`,
+      body: record.title ? `"${record.title}" — tap to see it.` : 'Tap to see what they added.',
+      url: '/wishlist',
     }
   }
 
