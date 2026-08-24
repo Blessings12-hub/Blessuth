@@ -1,0 +1,73 @@
+export const TRUTHS = [
+  "What's a habit of mine that secretly makes you smile?",
+  "What was your first real impression of me?",
+  "What's a small thing I do that makes you feel loved?",
+  "What's one thing you'd love for us to do together this year?",
+  "What's a memory of us you replay in your head?",
+  "What's something you were nervous to tell me but glad you did?",
+  "What's your favorite thing about how we argue (or make up)?",
+  "What's a dream you haven't told me about?",
+  "What's the most romantic thing anyone's done for you?",
+  "What's a moment you knew you were falling for me?",
+  "What's something you want more of from me?",
+  "What's a fear you have about us, if any?",
+  "What's your favorite way I say 'I love you' without saying it?",
+  "What's a place you'd love to take me?",
+  "What's something you admire about me that you don't say enough?",
+  "What's the corniest thing you think about me?",
+  "What's a song that reminds you of us?",
+  "What's one thing you'd change about our routine together?",
+  "What's your favorite physical feature of mine?",
+  "What's a compliment you got recently that you loved?",
+  "What's something you're proud of that you haven't told many people?",
+  "What's a tiny thing that instantly puts you in a good mood?",
+  "What's your idea of a perfect lazy Sunday with me?",
+  "What's something you find funny that I probably don't know about?",
+  "What's a way I could make your week easier?",
+  "What's the best gift I've ever given you, and why?",
+  "What's a goal you're working toward right now?",
+  "What's something you wish we talked about more?",
+  "What's your favorite inside joke between us?",
+  "What's a version of the future with me that excites you?",
+]
+
+export const DARES = [
+  'Send a text right now telling someone how much you appreciate them.',
+  'Give a genuine, specific compliment about something non-physical.',
+  "Do your best impression of how I act when I'm hangry.",
+  'Sing the chorus of your favorite song, no matter how it sounds.',
+  'Give a 60-second back or shoulder rub.',
+  "Recreate our first date's opening line.",
+  'Do 10 jumping jacks right now.',
+  'Let your partner pick your next playlist for a full hour.',
+  'Write a two-line poem about your partner, right now.',
+  'Do your best slow-motion action movie walk across the room.',
+  'Whisper the sweetest thing you can think of.',
+  'Attempt a cartwheel (or just really commit to trying).',
+  "Let your partner choose what's for your next meal, no complaints.",
+  'Give your best dramatic reading of a random text message.',
+  'Do an impression of your partner for 30 seconds.',
+  'Plan a mini surprise for your partner sometime this week — no details yet.',
+  'Hold a plank for 30 seconds.',
+  'Draw your partner from memory in under a minute.',
+  'Text your partner a compliment as if you were meeting for the first time.',
+  'Do your best dance move for 15 seconds, no music required.',
+  'Let your partner style your hair however they want for 5 minutes.',
+  'Come up with a nickname for your partner on the spot and use it for the rest of the day.',
+  "Act out your partner's morning routine.",
+  'Give a genuine toast, like you were at a wedding, about your relationship.',
+  'Balance a spoon on your nose for 10 seconds.',
+  'Do your best impression of a news anchor reporting on your relationship.',
+  'Let your partner pick a silly voice for you to use for the next 3 questions.',
+  "Guess your partner's favorite color, food, and movie — see how many you get right.",
+  'Hum a song and have your partner guess it.',
+  'Give a genuine hug that lasts a full 20 seconds.',
+]
+
+export function randomTruth() {
+  return TRUTHS[Math.floor(Math.random() * TRUTHS.length)]
+}
+
+export function randomDare() {
+  return DARES[Math.floor(Math.random() * DARES.length)]
+}
