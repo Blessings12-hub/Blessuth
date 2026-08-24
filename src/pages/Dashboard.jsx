@@ -19,6 +19,7 @@ import {
   QuizIcon,
   MapPinIcon,
   HeadphonesIcon,
+  GiftIcon,
 } from '../components/Icons'
 
 function daysUntil(dateStr) {
@@ -178,7 +179,8 @@ export default function Dashboard() {
     { to: '/chat', label: 'Chat', Icon: MessageIcon, desc: 'A running conversation' },
     { to: '/canvas', label: 'Shared Canvas', Icon: CanvasIcon, desc: 'Doodle together, live' },
     { to: '/photos', label: 'Photo Memories', Icon: PhotoIcon, desc: 'Your shared album' },
-    { to: '/quizzes', label: 'Couple Quiz', Icon: QuizIcon, desc: 'How well do you know each other?' },
+    { to: '/wishlist', label: 'Wishlist', Icon: GiftIcon, desc: 'Pin things you\'d like to get' },
+    { to: '/play', label: 'Quizzes & Games', Icon: QuizIcon, desc: 'How well do you know each other?' },
     { to: '/location', label: 'Distance', Icon: MapPinIcon, desc: 'How far apart you are right now' },
     { to: '/music', label: 'Mood & Music', Icon: HeadphonesIcon, desc: "What you're feeling / playing" },
     { to: '/notes', label: 'Love Notes', Icon: MailIcon, desc: 'Little messages, anytime' },

@@ -5,34 +5,7 @@ import { supabase } from '../supabase/config'
 import Logo from '../components/Logo'
 import { alertsMuted, setAlertsMuted } from '../components/InAppAlerts'
 import { pushSupported, getPushSubscriptionState, enablePush, disablePush, sendTestPush } from '../push'
-
-// Downscales + compresses an image client-side before upload, so profile
-// photos stay small regardless of the original file size.
-function resizeImage(file, maxSize = 480, quality = 0.85) {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * scale)
-      canvas.height = Math.round(img.height * scale)
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      canvas.toBlob(
-        (blob) => {
-          URL.revokeObjectURL(url)
-          if (blob) resolve(blob)
-          else reject(new Error('Could not process that image.'))
-        },
-        'image/jpeg',
-        quality
-      )
-    }
-    img.onerror = () => reject(new Error('Could not read that image.'))
-    img.src = url
-  })
-}
+import { resizeImage } from '../imageResize'
 
 export default function Settings() {
   const { user, couple, profile, partnerName, logout, unpairCouple } = useAuth()
