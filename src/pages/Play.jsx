@@ -19,7 +19,7 @@ export default function Play() {
         </button>
       </div>
 
-      {tab === 'quizzes' ? <Quizzes /> : <GamesHub />}
+      {tab === 'quizzes' ? <Quizzes /> : <GamesHub onGoToQuizzes={() => setTab('quizzes')} />}
     </div>
   )
 }
