@@ -166,6 +166,18 @@ export function UserIcon(props) {
   )
 }
 
+export function GiftIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" width={props.size || 20} height={props.size || 20} {...base} className={props.className}>
+      <rect x="3.5" y="9" width="17" height="11" rx="1.5" />
+      <path d="M3.5 13h17" />
+      <path d="M12 9v11" />
+      <path d="M12 9c-1.6 0-4-.9-4-3a2 2 0 0 1 4 0c0-1.4 1-2 2-2a2 2 0 0 1 0 4c-.6.6-1.4 1-2 1Z" />
+      <path d="M12 9c1.6 0 4-.9 4-3a2 2 0 0 0-4 0" />
+    </svg>
+  )
+}
+
 export function CalendarIcon(props) {
   return (
     <svg viewBox="0 0 24 24" width={props.size || 20} height={props.size || 20} {...base} className={props.className}>
