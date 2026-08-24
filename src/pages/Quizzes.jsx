@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 import QUIZ_TOPICS from '../data/quizSets'
+import Confetti from '../components/Confetti'
 
 function scoreTier(pct) {
   if (pct === 100) return 'Perfect — you know them completely.'
@@ -32,25 +33,6 @@ function useCountUp(value, duration = 700) {
     return () => cancelAnimationFrame(frame)
   }, [value, duration])
   return display
-}
-
-function Confetti() {
-  const pieces = Array.from({ length: 18 })
-  return (
-    <div className="confetti-burst" aria-hidden="true">
-      {pieces.map((_, i) => (
-        <span
-          key={i}
-          className="confetti-piece"
-          style={{
-            left: `${(i / pieces.length) * 100}%`,
-            animationDelay: `${(i % 6) * 0.08}s`,
-            background: ['var(--sunset)', 'var(--gold)', 'var(--teal)'][i % 3],
-          }}
-        />
-      ))}
-    </div>
-  )
 }
 
 // quiz_key format: "<topicKey>.<subtopicKey>" — keeps every subtopic
