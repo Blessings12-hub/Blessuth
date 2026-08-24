@@ -1209,10 +1209,229 @@ a {
   animation: pictionary-shake 0.4s ease;
 }
 
+.shake {
+  animation: pictionary-shake 0.4s ease;
+}
+
 @keyframes pictionary-shake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-6px); }
   75% { transform: translateX(6px); }
+}
+
+/* ---- Connect Four ---- */
+.c4-board {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  background: #1b4b8f;
+  padding: 8px;
+  border-radius: 12px;
+  overflow-x: auto;
+}
+
+.c4-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.c4-column:disabled {
+  cursor: default;
+}
+
+.c4-cell {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #0d2c57;
+}
+
+.c4-cell.filled.r {
+  background: #e63946;
+}
+
+.c4-cell.filled.y {
+  background: #f4d35e;
+}
+
+/* ---- Never Have I Ever ---- */
+.nhie-prompt {
+  font-family: 'Fraunces', serif;
+  font-size: 1.1rem;
+  text-align: center;
+  margin: 0 0 18px;
+}
+
+.nhie-options .tot-option-btn {
+  padding: 18px 12px;
+}
+
+.nhie-compare-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 0.82rem;
+}
+
+.nhie-compare-row.matched {
+  background: #e4f3ee;
+}
+
+.nhie-compare-prompt {
+  flex: 1;
+}
+
+.nhie-compare-icons {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ---- 20 Questions ---- */
+.twentyq-counter {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-bottom: 12px;
+}
+
+.twentyq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.twentyq-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.twentyq-question {
+  margin: 0;
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+.twentyq-answer-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.twentyq-answer-badge.yes {
+  background: #e4f3ee;
+  color: var(--teal);
+}
+
+.twentyq-answer-badge.no {
+  background: #fbe4e4;
+  color: #c0392b;
+}
+
+.twentyq-answer-badge.maybe {
+  background: #fdf1e3;
+  color: #b4790f;
+}
+
+.twentyq-answer-badge.pending {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.twentyq-answer-buttons {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.twentyq-answer-buttons button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+/* ---- Emoji Charades ---- */
+.emoji-display {
+  text-align: center;
+  font-size: 2.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 16px;
+  margin-bottom: 14px;
+  min-height: 1.4em;
+}
+
+.emoji-input {
+  font-size: 1.4rem;
+  text-align: center;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* ---- Story Chain ---- */
+.story-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.story-line {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+  max-width: 85%;
+  align-self: flex-start;
+}
+
+.story-line.mine {
+  background: #e4f3ee;
+  align-self: flex-end;
+}
+
+.story-line-text {
+  margin: 0 0 2px;
+  font-size: 0.9rem;
+}
+
+.story-line-by {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.story-progress {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-bottom: 12px;
 }
 
 /* ---- Play hub (Quizzes vs Games tabs) ---- */
