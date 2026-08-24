@@ -799,6 +799,422 @@ a {
   grid-column: 1 / -1;
 }
 
+/* ---- Shared game UI ---- */
+.primary-btn {
+  background: var(--sunset);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-btn:disabled {
+  opacity: 0.6;
+}
+
+.game-empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--muted);
+  position: relative;
+  overflow: hidden;
+}
+
+.game-empty-state p {
+  margin: 0 0 14px;
+}
+
+/* ---- Games grid (picker) ---- */
+.games-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.game-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 14px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.game-tile-icon {
+  font-size: 1.8rem;
+  margin-bottom: 6px;
+}
+
+.game-tile-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.game-tile-desc {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* ---- Word Game ---- */
+.word-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.word-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.word-tile {
+  width: 42px;
+  height: 42px;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+.word-tile.green {
+  background: #4caf7d;
+  border-color: #4caf7d;
+  color: white;
+}
+
+.word-tile.yellow {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: white;
+}
+
+.word-tile.gray {
+  background: var(--muted);
+  border-color: var(--muted);
+  color: white;
+}
+
+.word-row-by {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+.word-input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.word-input {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.word-result-card {
+  text-align: center;
+  padding: 24px 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+.word-result-card.win {
+  border-color: var(--gold);
+}
+
+.word-result-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.word-result-word {
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+
+/* ---- Truth or Dare ---- */
+.tod-card {
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.tod-card.truth {
+  background: linear-gradient(135deg, var(--teal), #256b6b);
+  color: white;
+}
+
+.tod-card.dare {
+  background: linear-gradient(135deg, var(--sunset), var(--gold));
+  color: white;
+}
+
+.tod-kind-badge {
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.85;
+  margin-bottom: 10px;
+}
+
+.tod-prompt {
+  font-family: 'Fraunces', serif;
+  font-size: 1.15rem;
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+
+.tod-chosen-by {
+  font-size: 0.78rem;
+  opacity: 0.8;
+  margin: 0;
+}
+
+.tod-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.tod-choice-btn {
+  flex: 1;
+  border: none;
+  border-radius: 14px;
+  padding: 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+}
+
+.tod-choice-btn.truth {
+  background: var(--teal);
+}
+
+.tod-choice-btn.dare {
+  background: var(--sunset);
+}
+
+.tod-choice-btn:disabled {
+  opacity: 0.6;
+}
+
+/* ---- This or That ---- */
+.tot-card {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.tot-progress {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-bottom: 14px;
+}
+
+.tot-options {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tot-option-btn {
+  flex: 1;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 12px;
+  font-family: 'Fraunces', serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.tot-option-btn:active {
+  border-color: var(--sunset);
+}
+
+.tot-or {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.tot-result-card {
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.tot-result-pct {
+  font-family: 'Fraunces', serif;
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--sunset);
+  margin: 0;
+}
+
+.tot-result-card.win .tot-result-pct {
+  color: var(--gold);
+}
+
+.tot-result-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0 0 16px;
+}
+
+.tot-compare-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+  text-align: left;
+}
+
+.tot-compare-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 0.85rem;
+}
+
+.tot-compare-row.matched {
+  background: #e4f3ee;
+}
+
+.tot-compare-you,
+.tot-compare-them {
+  flex: 1;
+}
+
+.tot-compare-them {
+  text-align: right;
+}
+
+.tot-compare-vs {
+  color: var(--muted);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* ---- Tic-Tac-Toe ---- */
+.ttt-tally {
+  text-align: center;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.ttt-last-result {
+  color: var(--muted);
+}
+
+.ttt-turn-indicator {
+  text-align: center;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.ttt-turn-indicator.mine {
+  color: var(--sunset);
+}
+
+.ttt-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.ttt-cell {
+  aspect-ratio: 1;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-family: 'Fraunces', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ttt-cell.filled.x {
+  color: var(--sunset);
+}
+
+.ttt-cell.filled.o {
+  color: var(--teal);
+}
+
+.ttt-cell:disabled {
+  cursor: default;
+}
+
+/* ---- Pictionary ---- */
+.pictionary-role-banner {
+  text-align: center;
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.pictionary-role-banner.drawer {
+  background: #fdf1e3;
+  color: #b4790f;
+}
+
+.pictionary-role-banner.guesser {
+  background: #e4f3ee;
+  color: var(--teal);
+}
+
+.pictionary-guess-input {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.draw-canvas.shake {
+  animation: pictionary-shake 0.4s ease;
+}
+
+@keyframes pictionary-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
 /* ---- Play hub (Quizzes vs Games tabs) ---- */
 .play-tabs {
   display: flex;
