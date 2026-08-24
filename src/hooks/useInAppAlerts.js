@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase/config'
 import { buildAlert, senderIdOf } from '../notifications'
 
-const TABLES = ['messages', 'notes', 'daily_answers', 'message_reactions', 'quiz_answers']
+const TABLES = ['messages', 'notes', 'daily_answers', 'message_reactions', 'quiz_answers', 'wishlist_items']
 const AUTO_DISMISS_MS = 7000
 
 // Alerts only fire while this tab/app is open — there's no service worker
