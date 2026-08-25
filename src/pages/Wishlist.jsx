@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 import { resizeImage } from '../imageResize'
@@ -39,7 +39,8 @@ export default function Wishlist() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
 
-  const [lightboxUrl, setLightboxUrl] = useState(null)
+  const [lightboxIndex, setLightboxIndex] = useState(null)
+  const touchStartX = useRef(null)
 
   async function loadItems() {
     if (!couple) return
@@ -186,6 +187,33 @@ export default function Wishlist() {
   const mine = items.filter((i) => i.user_id === user.id)
   const theirs = items.filter((i) => i.user_id === partnerUid)
   const shown = tab === 'mine' ? mine : theirs
+  const lightboxItems = shown.filter((i) => i.displayUrl || i.image_url)
+
+  function openLightbox(item) {
+    const idx = lightboxItems.findIndex((i) => i.id === item.id)
+    if (idx !== -1) setLightboxIndex(idx)
+  }
+
+  function showNext() {
+    setLightboxIndex((i) => (i === null ? i : (i + 1) % lightboxItems.length))
+  }
+
+  function showPrev() {
+    setLightboxIndex((i) => (i === null ? i : (i - 1 + lightboxItems.length) % lightboxItems.length))
+  }
+
+  function onTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX
+  }
+
+  function onTouchEnd(e) {
+    if (touchStartX.current === null) return
+    const delta = e.changedTouches[0].clientX - touchStartX.current
+    touchStartX.current = null
+    if (Math.abs(delta) < 40) return
+    if (delta < 0) showNext()
+    else showPrev()
+  }
 
   return (
     <div className="screen with-nav">
@@ -275,7 +303,7 @@ export default function Wishlist() {
                 src={item.displayUrl || item.image_url}
                 alt={item.title}
                 className="wishlist-card-img"
-                onClick={() => setLightboxUrl(item.displayUrl || item.image_url)}
+                onClick={() => openLightbox(item)}
                 style={{ cursor: 'zoom-in' }}
               />
             )}
@@ -368,9 +396,11 @@ export default function Wishlist() {
         )}
       </div>
 
-      {lightboxUrl && (
+      {lightboxIndex !== null && lightboxItems[lightboxIndex] && (
         <div
-          onClick={() => setLightboxUrl(null)}
+          onClick={() => setLightboxIndex(null)}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
           style={{
             position: 'fixed',
             inset: 0,
@@ -381,10 +411,11 @@ export default function Wishlist() {
             justifyContent: 'center',
             padding: 20,
             cursor: 'zoom-out',
+            touchAction: 'pan-y',
           }}
         >
           <button
-            onClick={() => setLightboxUrl(null)}
+            onClick={() => setLightboxIndex(null)}
             aria-label="Close"
             style={{
               position: 'absolute',
@@ -399,12 +430,67 @@ export default function Wishlist() {
               fontSize: '1.3rem',
               lineHeight: 1,
               cursor: 'pointer',
+              zIndex: 1,
             }}
           >
             ×
           </button>
+
+          {lightboxItems.length > 1 && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  showPrev()
+                }}
+                aria-label="Previous"
+                style={{
+                  position: 'absolute',
+                  left: 8,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  color: 'white',
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  fontSize: '1.3rem',
+                  lineHeight: 1,
+                  cursor: 'pointer',
+                }}
+              >
+                ‹
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  showNext()
+                }}
+                aria-label="Next"
+                style={{
+                  position: 'absolute',
+                  right: 8,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  color: 'white',
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  fontSize: '1.3rem',
+                  lineHeight: 1,
+                  cursor: 'pointer',
+                }}
+              >
+                ›
+              </button>
+            </>
+          )}
+
           <img
-            src={lightboxUrl}
+            src={lightboxItems[lightboxIndex].displayUrl || lightboxItems[lightboxIndex].image_url}
             alt=""
             onClick={(e) => e.stopPropagation()}
             style={{
@@ -414,6 +500,19 @@ export default function Wishlist() {
               borderRadius: 8,
             }}
           />
+
+          {lightboxItems.length > 1 && (
+            <p
+              style={{
+                position: 'absolute',
+                bottom: 'calc(16px + env(safe-area-inset-bottom))',
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: '0.8rem',
+              }}
+            >
+              {lightboxIndex + 1} / {lightboxItems.length}
+            </p>
+          )}
         </div>
       )}
     </div>
