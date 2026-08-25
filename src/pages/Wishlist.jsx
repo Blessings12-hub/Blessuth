@@ -39,6 +39,8 @@ export default function Wishlist() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
 
+  const [lightboxUrl, setLightboxUrl] = useState(null)
+
   async function loadItems() {
     if (!couple) return
     const { data } = await supabase
@@ -269,7 +271,13 @@ export default function Wishlist() {
         {shown.map((item) => (
           <div key={item.id} className="wishlist-card">
             {(item.displayUrl || item.image_url) && (
-              <img src={item.displayUrl || item.image_url} alt={item.title} className="wishlist-card-img" />
+              <img
+                src={item.displayUrl || item.image_url}
+                alt={item.title}
+                className="wishlist-card-img"
+                onClick={() => setLightboxUrl(item.displayUrl || item.image_url)}
+                style={{ cursor: 'zoom-in' }}
+              />
             )}
             <div className="wishlist-card-body">
               {editingId === item.id ? (
@@ -359,6 +367,55 @@ export default function Wishlist() {
           </p>
         )}
       </div>
+
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 200,
+            background: 'rgba(0, 0, 0, 0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20,
+            cursor: 'zoom-out',
+          }}
+        >
+          <button
+            onClick={() => setLightboxUrl(null)}
+            aria-label="Close"
+            style={{
+              position: 'absolute',
+              top: 'calc(16px + env(safe-area-inset-top))',
+              right: 16,
+              background: 'rgba(255, 255, 255, 0.15)',
+              border: 'none',
+              color: 'white',
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              fontSize: '1.3rem',
+              lineHeight: 1,
+              cursor: 'pointer',
+            }}
+          >
+            ×
+          </button>
+          <img
+            src={lightboxUrl}
+            alt=""
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              objectFit: 'contain',
+              borderRadius: 8,
+            }}
+          />
+        </div>
+      )}
     </div>
   )
 }
