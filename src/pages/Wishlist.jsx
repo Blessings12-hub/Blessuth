@@ -12,6 +12,15 @@ function titleFromFilename(name) {
   return titled || 'Wishlist item'
 }
 
+// Price is free-form text ("$45", "around $30", "$1,200") so this pulls out
+// the first number it can find, for sorting purposes only — display always
+// shows the original text as typed.
+function parsePrice(price) {
+  if (!price) return null
+  const match = price.replace(/,/g, '').match(/[\d.]+/)
+  return match ? parseFloat(match[0]) : null
+}
+
 export default function Wishlist() {
   const { couple, user, profile, partnerUid, partnerName } = useAuth()
   const [items, setItems] = useState([])
@@ -39,6 +48,7 @@ export default function Wishlist() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
 
+  const [sortBy, setSortBy] = useState('newest')
   const [lightboxIndex, setLightboxIndex] = useState(null)
   const touchStartX = useRef(null)
 
@@ -186,7 +196,17 @@ export default function Wishlist() {
 
   const mine = items.filter((i) => i.user_id === user.id)
   const theirs = items.filter((i) => i.user_id === partnerUid)
-  const shown = tab === 'mine' ? mine : theirs
+  const unsorted = tab === 'mine' ? mine : theirs
+
+  const shown = [...unsorted].sort((a, b) => {
+    if (sortBy === 'newest') return 0 // already newest-first from the query
+    const pa = parsePrice(a.price)
+    const pb = parsePrice(b.price)
+    if (pa === null && pb === null) return 0
+    if (pa === null) return 1 // items with no price sort to the end either way
+    if (pb === null) return -1
+    return sortBy === 'price-asc' ? pa - pb : pb - pa
+  })
   const lightboxItems = shown.filter((i) => i.displayUrl || i.image_url)
 
   function openLightbox(item) {
@@ -228,6 +248,27 @@ export default function Wishlist() {
           For you
         </button>
       </div>
+
+      {shown.length > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '10px 0' }}>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            style={{
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              padding: '6px 10px',
+              fontSize: '0.8rem',
+              background: 'var(--surface)',
+              color: 'var(--ink)',
+            }}
+          >
+            <option value="newest">Newest first</option>
+            <option value="price-asc">Price: low to high</option>
+            <option value="price-desc">Price: high to low</option>
+          </select>
+        </div>
+      )}
 
       {tab === 'mine' && (
         <div className="wishlist-add-section">
