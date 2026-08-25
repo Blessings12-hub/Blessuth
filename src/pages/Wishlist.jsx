@@ -5,22 +5,39 @@ import { resizeImage } from '../imageResize'
 
 const SIGNED_URL_TTL = 60 * 60
 
+function titleFromFilename(name) {
+  const base = name.replace(/\.[^/.]+$/, '')
+  const spaced = base.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim()
+  const titled = spaced.replace(/\b\w/g, (c) => c.toUpperCase())
+  return titled || 'Wishlist item'
+}
+
 export default function Wishlist() {
   const { couple, user, profile, partnerUid, partnerName } = useAuth()
   const [items, setItems] = useState([])
   const [tab, setTab] = useState('theirs')
   const [formOpen, setFormOpen] = useState(false)
 
-  const [linkInput, setLinkInput] = useState('')
-  const [unfurling, setUnfurling] = useState(false)
-  const [unfurlError, setUnfurlError] = useState('')
-  const [title, setTitle] = useState('')
-  const [note, setNote] = useState('')
-  const [price, setPrice] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
-  const [uploadPath, setUploadPath] = useState('')
-  const [uploading, setUploading] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  // Quick multi-add: paste several links (one per line) and/or pick several
+  // photos at once — everything gets added in one pass, no per-item form.
+  const [linksText, setLinksText] = useState('')
+  const [photoFiles, setPhotoFiles] = useState([])
+  const [adding, setAdding] = useState(null) // { done, total } while in progress
+  const [addError, setAddError] = useState('')
+
+  // Fill in price/notes/adjust the title afterward, per item, instead of
+  // up front — that's what keeps the initial add fast.
+  const [editingId, setEditingId] = useState(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editPrice, setEditPrice] = useState('')
+  const [editNote, setEditNote] = useState('')
+  const [editBusy, setEditBusy] = useState(false)
+
+  // window.confirm() is unreliable in iOS home-screen PWAs (a known iOS
+  // WebKit limitation) — this app already avoids it everywhere else (see
+  // Settings.jsx's disconnect flow) in favor of an inline confirm box.
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
 
   async function loadItems() {
     if (!couple) return
@@ -55,77 +72,106 @@ export default function Wishlist() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couple?.id])
 
-  function resetForm() {
-    setLinkInput('')
-    setUnfurlError('')
-    setTitle('')
-    setNote('')
-    setPrice('')
-    setImageUrl('')
-    setUploadPath('')
-  }
+  async function addAll() {
+    const lines = linksText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+    const files = photoFiles
+    const total = lines.length + files.length
+    if (total === 0) return
 
-  async function fetchPreview() {
-    if (!linkInput.trim()) return
-    setUnfurling(true)
-    setUnfurlError('')
-    try {
-      const res = await fetch('/api/unfurl', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: linkInput.trim() }),
-      })
-      const data = await res.json()
-      if (data.error) {
-        setUnfurlError(data.error)
-      } else {
-        if (data.image) setImageUrl(data.image)
-        if (data.title && !title) setTitle(data.title)
+    setAddError('')
+    setAdding({ done: 0, total })
+    const failures = []
+
+    for (const line of lines) {
+      try {
+        let previewTitle = null
+        let previewImage = null
+        try {
+          const res = await fetch('/api/unfurl', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: line }),
+          })
+          const data = await res.json()
+          if (!data.error) {
+            previewTitle = data.title
+            previewImage = data.image
+          }
+        } catch {
+          // Unfurl failing just means no auto title/image — still add the link.
+        }
+        await supabase.from('wishlist_items').insert({
+          couple_id: couple.id,
+          user_id: user.id,
+          user_name: profile?.display_name || 'You',
+          title: (previewTitle || line).slice(0, 120),
+          image_url: previewImage || null,
+          link_url: line,
+        })
+      } catch {
+        failures.push(line)
       }
-    } catch {
-      setUnfurlError('Could not reach that link — you can still fill it in by hand.')
-    } finally {
-      setUnfurling(false)
+      setAdding((a) => (a ? { ...a, done: a.done + 1 } : a))
     }
+
+    for (const file of files) {
+      try {
+        const resized = await resizeImage(file, 800, 0.85)
+        const path = `${couple.id}/wishlist/${Date.now()}_${file.name}`
+        const { error: uploadError } = await supabase.storage.from('photos').upload(path, resized)
+        if (uploadError) throw uploadError
+        await supabase.from('wishlist_items').insert({
+          couple_id: couple.id,
+          user_id: user.id,
+          user_name: profile?.display_name || 'You',
+          title: titleFromFilename(file.name),
+          path,
+        })
+      } catch {
+        failures.push(file.name)
+      }
+      setAdding((a) => (a ? { ...a, done: a.done + 1 } : a))
+    }
+
+    setAdding(null)
+    if (failures.length > 0) {
+      setAddError(`Couldn't add: ${failures.join(', ')} — everything else was added fine.`)
+    }
+    setLinksText('')
+    setPhotoFiles([])
+    if (failures.length === 0) setFormOpen(false)
   }
 
-  async function handlePhotoUpload(e) {
-    const file = e.target.files[0]
-    if (!file || !couple) return
-    setUploading(true)
-    try {
-      const resized = await resizeImage(file, 800, 0.85)
-      const path = `${couple.id}/wishlist/${Date.now()}_${file.name}`
-      const { error: uploadError } = await supabase.storage.from('photos').upload(path, resized)
-      if (uploadError) throw uploadError
-      setUploadPath(path)
-      const { data: signed } = await supabase.storage.from('photos').createSignedUrl(path, SIGNED_URL_TTL)
-      setImageUrl(signed?.signedUrl || '')
-    } catch (err) {
-      setUnfurlError(err.message)
-    } finally {
-      setUploading(false)
-      e.target.value = ''
-    }
+  function startEdit(item) {
+    setEditingId(item.id)
+    setEditTitle(item.title || '')
+    setEditPrice(item.price || '')
+    setEditNote(item.note || '')
   }
 
-  async function submitItem() {
-    if (!title.trim()) return
-    setSubmitting(true)
-    await supabase.from('wishlist_items').insert({
-      couple_id: couple.id,
-      user_id: user.id,
-      user_name: profile?.display_name || 'You',
-      title: title.trim(),
-      image_url: uploadPath ? null : imageUrl || null,
-      path: uploadPath || null,
-      link_url: linkInput.trim() || null,
-      price: price.trim() || null,
-      note: note.trim() || null,
-    })
-    setSubmitting(false)
-    resetForm()
-    setFormOpen(false)
+  async function saveEdit(item) {
+    setEditBusy(true)
+    await supabase
+      .from('wishlist_items')
+      .update({
+        title: editTitle.trim() || item.title,
+        price: editPrice.trim() || null,
+        note: editNote.trim() || null,
+      })
+      .eq('id', item.id)
+    setEditBusy(false)
+    setEditingId(null)
+  }
+
+  async function confirmDelete(item) {
+    setDeleteBusy(true)
+    if (item.path) await supabase.storage.from('photos').remove([item.path])
+    await supabase.from('wishlist_items').delete().eq('id', item.id)
+    setDeleteBusy(false)
+    setConfirmDeleteId(null)
   }
 
   async function toggleGotIt(item) {
@@ -135,12 +181,6 @@ export default function Wishlist() {
       .eq('id', item.id)
   }
 
-  async function deleteItem(item) {
-    if (!confirm('Remove this from your wishlist?')) return
-    if (item.path) await supabase.storage.from('photos').remove([item.path])
-    await supabase.from('wishlist_items').delete().eq('id', item.id)
-  }
-
   const mine = items.filter((i) => i.user_id === user.id)
   const theirs = items.filter((i) => i.user_id === partnerUid)
   const shown = tab === 'mine' ? mine : theirs
@@ -148,7 +188,7 @@ export default function Wishlist() {
   return (
     <div className="screen with-nav">
       <h2>Wishlist</h2>
-      <p className="subtitle">Pin things you'd like — paste a link (Pinterest works great) or add your own photo.</p>
+      <p className="subtitle">Pin things you'd like — paste links (Pinterest works great) or add photos, several at once.</p>
 
       <div className="play-tabs">
         <button className={'play-tab' + (tab === 'theirs' ? ' active' : '')} onClick={() => setTab('theirs')}>
@@ -167,66 +207,57 @@ export default function Wishlist() {
             </button>
           ) : (
             <div className="wishlist-form">
-              <div className="wishlist-form-row">
-                <input
-                  type="text"
-                  placeholder="Paste a link (Pinterest, Amazon, Etsy, anywhere)"
-                  value={linkInput}
-                  onChange={(e) => setLinkInput(e.target.value)}
-                  className="word-input pictionary-guess-input"
-                />
-                <button className="link-btn small" onClick={fetchPreview} disabled={unfurling || !linkInput.trim()}>
-                  {unfurling ? 'Fetching…' : 'Fetch preview'}
-                </button>
-              </div>
-              {unfurlError && <p className="error">{unfurlError}</p>}
-
-              <p className="wishlist-form-or">— or —</p>
-              <label className="upload-btn">
-                {uploading ? 'Uploading…' : '+ Upload a photo'}
-                <input type="file" accept="image/*" onChange={handlePhotoUpload} disabled={uploading} hidden />
-              </label>
-
-              {imageUrl && (
-                <div className="wishlist-preview">
-                  <img src={imageUrl} alt="" />
-                </div>
-              )}
-
-              <input
-                type="text"
-                placeholder="Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="word-input pictionary-guess-input"
-              />
-              <input
-                type="text"
-                placeholder="Price (optional)"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className="word-input pictionary-guess-input"
-              />
               <textarea
                 className="surprise-textarea"
-                rows={2}
-                placeholder="Note (optional) — size, color, why you want it…"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
+                rows={3}
+                placeholder={'Paste one or more links, one per line\ne.g.\nhttps://pinterest.com/pin/...\nhttps://amazon.com/...'}
+                value={linksText}
+                onChange={(e) => setLinksText(e.target.value)}
+                disabled={!!adding}
               />
+
+              <label className="upload-btn">
+                {photoFiles.length > 0 ? `${photoFiles.length} photo(s) selected` : '+ Add photos (pick several at once)'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => setPhotoFiles(Array.from(e.target.files))}
+                  disabled={!!adding}
+                  hidden
+                />
+              </label>
+
+              <p className="subtitle small-note">
+                Titles are grabbed automatically — add price or notes afterward by tapping any item.
+              </p>
+
+              {adding && (
+                <p className="subtitle small-note">
+                  Adding {adding.done} of {adding.total}…
+                </p>
+              )}
+              {addError && <p className="error">{addError}</p>}
 
               <div className="wishlist-form-actions">
                 <button
                   className="link-btn"
                   onClick={() => {
-                    resetForm()
+                    setLinksText('')
+                    setPhotoFiles([])
+                    setAddError('')
                     setFormOpen(false)
                   }}
+                  disabled={!!adding}
                 >
                   Cancel
                 </button>
-                <button className="primary-btn" onClick={submitItem} disabled={submitting || !title.trim()}>
-                  {submitting ? 'Adding…' : 'Add to wishlist'}
+                <button
+                  className="primary-btn"
+                  onClick={addAll}
+                  disabled={!!adding || (!linksText.trim() && photoFiles.length === 0)}
+                >
+                  {adding ? 'Adding…' : 'Add to wishlist'}
                 </button>
               </div>
             </div>
@@ -241,26 +272,81 @@ export default function Wishlist() {
               <img src={item.displayUrl || item.image_url} alt={item.title} className="wishlist-card-img" />
             )}
             <div className="wishlist-card-body">
-              <p className="wishlist-card-title">{item.title}</p>
-              {item.price && <p className="wishlist-card-price">{item.price}</p>}
-              {item.note && <p className="wishlist-card-note">{item.note}</p>}
-              {item.link_url && (
-                <a href={item.link_url} target="_blank" rel="noopener noreferrer" className="wishlist-card-link">
-                  View link ↗
-                </a>
-              )}
-
-              {tab === 'mine' ? (
-                <button className="link-btn small" onClick={() => deleteItem(item)}>
-                  remove
-                </button>
+              {editingId === item.id ? (
+                <div className="wishlist-form" style={{ padding: 0, border: 'none', background: 'transparent' }}>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="word-input pictionary-guess-input"
+                    placeholder="Title"
+                  />
+                  <input
+                    type="text"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                    className="word-input pictionary-guess-input"
+                    placeholder="Price (optional)"
+                  />
+                  <textarea
+                    className="surprise-textarea"
+                    rows={2}
+                    value={editNote}
+                    onChange={(e) => setEditNote(e.target.value)}
+                    placeholder="Note (optional)"
+                  />
+                  <div className="wishlist-form-actions">
+                    <button className="link-btn small" onClick={() => setEditingId(null)} disabled={editBusy}>
+                      Cancel
+                    </button>
+                    <button className="primary-btn" onClick={() => saveEdit(item)} disabled={editBusy}>
+                      {editBusy ? 'Saving…' : 'Save'}
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <button
-                  className={'wishlist-got-it-btn' + (item.purchased ? ' done' : '')}
-                  onClick={() => toggleGotIt(item)}
-                >
-                  {item.purchased ? '✓ Got it' : '🎁 Mark as got it'}
-                </button>
+                <>
+                  <p className="wishlist-card-title">{item.title}</p>
+                  {item.price && <p className="wishlist-card-price">{item.price}</p>}
+                  {item.note && <p className="wishlist-card-note">{item.note}</p>}
+                  {item.link_url && (
+                    <a href={item.link_url} target="_blank" rel="noopener noreferrer" className="wishlist-card-link">
+                      View link ↗
+                    </a>
+                  )}
+
+                  {tab === 'mine' ? (
+                    confirmDeleteId === item.id ? (
+                      <div className="confirm-box">
+                        <p>Remove this item?</p>
+                        <div className="row">
+                          <button className="danger-btn" onClick={() => confirmDelete(item)} disabled={deleteBusy}>
+                            {deleteBusy ? 'Removing…' : 'Yes, remove'}
+                          </button>
+                          <button type="button" onClick={() => setConfirmDeleteId(null)} disabled={deleteBusy}>
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 12 }}>
+                        <button className="link-btn small" onClick={() => startEdit(item)}>
+                          edit
+                        </button>
+                        <button className="link-btn small" onClick={() => setConfirmDeleteId(item.id)}>
+                          remove
+                        </button>
+                      </div>
+                    )
+                  ) : (
+                    <button
+                      className={'wishlist-got-it-btn' + (item.purchased ? ' done' : '')}
+                      onClick={() => toggleGotIt(item)}
+                    >
+                      {item.purchased ? '✓ Got it' : '🎁 Mark as got it'}
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
