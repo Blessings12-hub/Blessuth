@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
@@ -17,7 +17,6 @@ import {
   CanvasIcon,
   PhotoIcon,
   QuizIcon,
-  MapPinIcon,
   HeadphonesIcon,
   GiftIcon,
 } from '../components/Icons'
@@ -61,23 +60,6 @@ function yearsTogether(dateStr) {
   return years
 }
 
-function haversineKm(a, b) {
-  const R = 6371
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180
-  const lat1 = (a.lat * Math.PI) / 180
-  const lat2 = (b.lat * Math.PI) / 180
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(h))
-}
-
-// Only write a new location if we've moved meaningfully or enough time passed —
-// keeps the widget "live" without hammering the database on every GPS tick.
-const MIN_MOVE_KM = 0.5
-const MIN_INTERVAL_MS = 5 * 60 * 1000
-
 export default function Dashboard() {
   const { user, profile, couple, partnerName, partnerTimezone, partnerBirthday, partnerAvatarUrl, logout } = useAuth()
   const [editingDate, setEditingDate] = useState(false)
@@ -88,7 +70,6 @@ export default function Dashboard() {
   const [birthdayInput, setBirthdayInput] = useState(profile?.birthday || '')
   const [now, setNow] = useState(new Date())
   const [pingSent, setPingSent] = useState(false)
-  const lastWrite = useRef({ coords: null, at: 0 })
 
   const days = daysUntil(couple?.next_visit_date)
   const togetherDays = daysSince(couple?.together_since)
@@ -102,37 +83,6 @@ export default function Dashboard() {
     const t = setInterval(() => setNow(new Date()), 30000)
     return () => clearInterval(t)
   }, [])
-
-  // Background location tracking — only runs once the user has explicitly
-  // enabled location sharing (see the Map tab), and keeps the distance
-  // widget "live" while the app is open.
-  useEffect(() => {
-    if (!couple || !profile?.location_sharing_enabled || !navigator.geolocation) return
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-        const last = lastWrite.current
-        const elapsed = Date.now() - last.at
-        const moved = last.coords ? haversineKm(last.coords, coords) : Infinity
-        if (elapsed < MIN_INTERVAL_MS && moved < MIN_MOVE_KM) return
-        lastWrite.current = { coords, at: Date.now() }
-        supabase.from('locations').upsert({
-          couple_id: couple.id,
-          user_id: user.id,
-          lat: coords.lat,
-          lng: coords.lng,
-          label: profile?.display_name || 'Me',
-          updated_at: new Date().toISOString(),
-        })
-      },
-      () => {
-        /* silently ignore — user may have denied permission; they can still
-           share manually from the Map tab */
-      },
-      { enableHighAccuracy: false, maximumAge: 60000 }
-    )
-    return () => navigator.geolocation.clearWatch(watchId)
-  }, [couple?.id, user?.id, profile?.display_name, profile?.location_sharing_enabled])
 
   const partnerTime = partnerTimezone
     ? now.toLocaleTimeString('en-US', {
@@ -179,9 +129,8 @@ export default function Dashboard() {
     { to: '/chat', label: 'Chat', Icon: MessageIcon, desc: 'A running conversation' },
     { to: '/canvas', label: 'Shared Canvas', Icon: CanvasIcon, desc: 'Doodle together, live' },
     { to: '/photos', label: 'Photo Memories', Icon: PhotoIcon, desc: 'Your shared album' },
-    { to: '/wishlist', label: 'Wishlist', Icon: GiftIcon, desc: 'Pin things you\'d like to get' },
+    { to: '/wishlist', label: 'Wishlist', Icon: GiftIcon, desc: "Pin things you'd like to get" },
     { to: '/play', label: 'Quizzes & Games', Icon: QuizIcon, desc: 'How well do you know each other?' },
-    { to: '/location', label: 'Distance', Icon: MapPinIcon, desc: 'How far apart you are right now' },
     { to: '/music', label: 'Mood & Music', Icon: HeadphonesIcon, desc: "What you're feeling / playing" },
     { to: '/notes', label: 'Love Notes', Icon: MailIcon, desc: 'Little messages, anytime' },
   ]
