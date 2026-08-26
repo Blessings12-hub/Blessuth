@@ -1,12 +1,12 @@
 Zips can't represent deleted files, so after unzipping and overwriting the
 files above into your project, manually delete this one:
 
-  App.jsx   (the copy sitting at your project ROOT, not the one in src/)
+  src/pages/LocationPage.jsx
 
-This was a stale, unused leftover — your app has always actually run from
-src/App.jsx (that's what src/main.jsx imports, and that's the one this zip
-updates). The root-level copy was never loaded by the build; it was just
-out of date and sitting there unused. Confirmed via index.html, which
-only ever loads /src/main.jsx.
+It's no longer routed to anywhere — its functionality has been fully
+folded into src/components/DistanceWidget.jsx (the toggle, the live
+tracking, the display), which now only ever appears on the Home page.
+Deleting it is safe; it's dead code, confirmed via a check of every
+remaining route and import.
 
 You can delete this .txt file itself once you're done.
