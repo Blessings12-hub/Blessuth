@@ -2,16 +2,14 @@ import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
-import { HomeIcon, CanvasIcon, PhotoIcon, QuizIcon, MapPinIcon, HeadphonesIcon, MailIcon, MessageIcon, GiftIcon } from './Icons'
+import { HomeIcon, CanvasIcon, QuizIcon, HeadphonesIcon, MailIcon, MessageIcon, GiftIcon } from './Icons'
 
 const items = [
   { to: '/', label: 'Home', Icon: HomeIcon },
   { to: '/canvas', label: 'Canvas', Icon: CanvasIcon },
-  { to: '/photos', label: 'Photos', Icon: PhotoIcon },
   { to: '/chat', label: 'Chat', Icon: MessageIcon },
   { to: '/play', label: 'Play', Icon: QuizIcon },
   { to: '/wishlist', label: 'Wishlist', Icon: GiftIcon },
-  { to: '/location', label: 'Distance', Icon: MapPinIcon },
   { to: '/music', label: 'Mood', Icon: HeadphonesIcon },
   { to: '/notes', label: 'Notes', Icon: MailIcon },
 ]
@@ -59,7 +57,7 @@ export default function Nav() {
   }
 
   return (
-    <nav className="bottom-nav" style={{ overflowX: 'auto', justifyContent: 'flex-start' }}>
+    <nav className="bottom-nav" style={{ overflowX: 'auto' }}>
       {items.map((item) => (
         <NavLink
           key={item.to}
