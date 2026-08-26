@@ -1,8 +1,16 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 import { HeartIcon } from './Icons'
+
+const STALE_AFTER_MIN = 180
+
+// Only write a new location if we've moved meaningfully or enough time
+// passed — keeps things "live" without hammering the database on every
+// GPS tick. (Moved here from Dashboard.jsx so all location logic — the
+// toggle, the tracking, the display — lives in one place.)
+const MIN_MOVE_KM = 0.5
+const MIN_INTERVAL_MS = 5 * 60 * 1000
 
 function haversineKm(a, b) {
   const R = 6371
@@ -16,9 +24,13 @@ function haversineKm(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h))
 }
 
-function timeAgo(iso) {
+function minutesAgo(iso) {
   if (!iso) return null
-  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+}
+
+function timeAgo(mins) {
+  if (mins === null) return null
   if (mins < 1) return 'just now'
   if (mins < 60) return `${mins}m ago`
   const hrs = Math.floor(mins / 60)
@@ -26,10 +38,39 @@ function timeAgo(iso) {
   return `${Math.floor(hrs / 24)}d ago`
 }
 
+// Tries for a precise fix first, then falls back to a coarser, more
+// forgiving one — a tight high-accuracy timeout is the single most common
+// reason this silently never gets a position (indoors, weak GPS, slow first
+// fix). Only used for the immediate one-off fix when sharing is switched
+// on; ongoing updates come from watchPosition below.
+function getPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation is not supported on this device.'))
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      resolve,
+      () => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: false,
+          timeout: 20000,
+          maximumAge: 60000,
+        })
+      },
+      { enableHighAccuracy: true, timeout: 12000 }
+    )
+  })
+}
+
 export default function DistanceWidget() {
   const { couple, user, partnerUid, partnerName, profile } = useAuth()
   const [mine, setMine] = useState(null)
   const [theirs, setTheirs] = useState(null)
+  const [partnerSharing, setPartnerSharing] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const [error, setError] = useState('')
+  const lastWrite = useRef({ coords: null, at: 0 })
 
   async function load() {
     if (!couple) return
@@ -38,28 +79,121 @@ export default function DistanceWidget() {
     setTheirs(data?.find((r) => r.user_id === partnerUid) || null)
   }
 
+  async function loadPartnerSharing() {
+    if (!partnerUid) return
+    const { data } = await supabase
+      .from('profiles')
+      .select('location_sharing_enabled')
+      .eq('id', partnerUid)
+      .single()
+    setPartnerSharing(data?.location_sharing_enabled || false)
+  }
+
   useEffect(() => {
     if (!couple) return
     load()
-    const channel = supabase
-      .channel(`distance-widget-${couple.id}`)
+    loadPartnerSharing()
+
+    const locationsChannel = supabase
+      .channel(`distance-widget-locations-${couple.id}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'locations', filter: `couple_id=eq.${couple.id}` },
         load
       )
       .subscribe()
-    return () => supabase.removeChannel(channel)
+
+    const sharingChannel = partnerUid
+      ? supabase
+          .channel(`distance-widget-sharing-${partnerUid}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${partnerUid}` },
+            loadPartnerSharing
+          )
+          .subscribe()
+      : null
+
+    return () => {
+      supabase.removeChannel(locationsChannel)
+      if (sharingChannel) supabase.removeChannel(sharingChannel)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couple?.id, partnerUid])
 
-  // Only trust a location row if lat/lng actually came through as real
-  // numbers — guards against showing a broken "NaN km" if a row exists but
-  // is somehow malformed, instead of silently failing.
-  const validPoint = (row) => row && Number.isFinite(row.lat) && Number.isFinite(row.lng)
-  const haveMine = validPoint(mine)
-  const haveTheirs = validPoint(theirs)
-  const distance = haveMine && haveTheirs ? haversineKm(mine, theirs) : null
+  // Continuous tracking while sharing is on and the app is open — moved
+  // here from Dashboard.jsx so this widget is fully self-contained. Can't
+  // run in the background (no native permission for that in a PWA), so it
+  // intentionally stops the moment the tab closes rather than pretending to
+  // track continuously.
+  useEffect(() => {
+    if (!couple || !profile?.location_sharing_enabled || !navigator.geolocation) return
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+        const last = lastWrite.current
+        const elapsed = Date.now() - last.at
+        const moved = last.coords ? haversineKm(last.coords, coords) : Infinity
+        if (elapsed < MIN_INTERVAL_MS && moved < MIN_MOVE_KM) return
+        lastWrite.current = { coords, at: Date.now() }
+        supabase.from('locations').upsert({
+          couple_id: couple.id,
+          user_id: user.id,
+          lat: coords.lat,
+          lng: coords.lng,
+          label: profile?.display_name || 'Me',
+          updated_at: new Date().toISOString(),
+        })
+      },
+      () => {
+        // Silently ignore — permission may have been revoked after
+        // initially granting; toggling off/on again surfaces a clear error.
+      },
+      { enableHighAccuracy: false, maximumAge: 60000 }
+    )
+    return () => navigator.geolocation.clearWatch(watchId)
+  }, [couple?.id, user?.id, profile?.display_name, profile?.location_sharing_enabled])
+
+  async function toggleSharing() {
+    setError('')
+    if (profile?.location_sharing_enabled) {
+      // Turning off also clears your stored location — otherwise "off"
+      // would be cosmetic only, and your last known spot would keep
+      // silently showing to your partner.
+      await supabase.from('profiles').update({ location_sharing_enabled: false }).eq('id', user.id)
+      await supabase.from('locations').delete().eq('couple_id', couple.id).eq('user_id', user.id)
+      return
+    }
+
+    setSharing(true)
+    try {
+      const pos = await getPosition()
+      lastWrite.current = { coords: { lat: pos.coords.latitude, lng: pos.coords.longitude }, at: Date.now() }
+      await supabase.from('locations').upsert({
+        couple_id: couple.id,
+        user_id: user.id,
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        label: profile?.display_name || 'Me',
+        updated_at: new Date().toISOString(),
+      })
+      await supabase.from('profiles').update({ location_sharing_enabled: true }).eq('id', user.id)
+    } catch (err) {
+      setError(
+        err.code === 1
+          ? "Location access is blocked — check your browser or phone's location permissions."
+          : err.message || 'Could not get your location — try again in a moment.'
+      )
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  const bothSharing = !!profile?.location_sharing_enabled && partnerSharing
+  const distance = bothSharing && mine && theirs ? haversineKm(mine, theirs) : null
+  const myMinsAgo = minutesAgo(mine?.updated_at)
+  const theirMinsAgo = minutesAgo(theirs?.updated_at)
+  const stale = (myMinsAgo !== null && myMinsAgo > STALE_AFTER_MIN) || (theirMinsAgo !== null && theirMinsAgo > STALE_AFTER_MIN)
   const myInitial = (profile?.display_name || '?')[0].toUpperCase()
   const theirInitial = (partnerName || '?')[0].toUpperCase()
 
@@ -74,34 +208,34 @@ export default function DistanceWidget() {
         <span className="distance-node theirs">{theirInitial}</span>
       </div>
 
-      {distance !== null && Number.isFinite(distance) ? (
+      {distance !== null ? (
         <>
           <div className="distance-widget-value">
             {Math.round(distance).toLocaleString()}
             <span className="unit">km apart</span>
           </div>
           <div className="distance-widget-meta">
-            you {timeAgo(mine?.updated_at)} · {partnerName || 'them'} {timeAgo(theirs?.updated_at)}
+            you {timeAgo(myMinsAgo)} · {partnerName || 'them'} {timeAgo(theirMinsAgo)}
+            {stale && ' · may be outdated'}
           </div>
         </>
       ) : (
-        <>
-          <div className="distance-widget-value muted">— km</div>
-          <div className="distance-widget-status">
-            <span className={haveMine ? 'ready' : 'pending'}>
-              {haveMine ? '✓ You shared' : "You haven't shared yet"}
-            </span>
-            <span className={haveTheirs ? 'ready' : 'pending'}>
-              {haveTheirs
-                ? `✓ ${partnerName || 'They'} shared`
-                : `Waiting for ${partnerName || 'them'} to share`}
-            </span>
-          </div>
-          <Link to="/location" className="distance-widget-cta">
-            {haveMine ? 'Manage location sharing →' : 'Share your location →'}
-          </Link>
-        </>
+        <div className="distance-widget-value muted">
+          {!profile?.location_sharing_enabled
+            ? 'Not sharing'
+            : !partnerSharing
+              ? `Waiting for ${partnerName || 'them'}`
+              : '— km'}
+        </div>
       )}
+
+      <button className="toggle-row" onClick={toggleSharing} disabled={sharing}>
+        <span>{sharing ? 'Getting your location…' : profile?.location_sharing_enabled ? 'Sharing on' : 'Share your location'}</span>
+        <span className={'toggle-switch' + (profile?.location_sharing_enabled ? ' on' : '')}>
+          <span className="toggle-knob" />
+        </span>
+      </button>
+      {error && <p className="error">{error}</p>}
     </div>
   )
 }
