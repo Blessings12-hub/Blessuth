@@ -10,7 +10,6 @@ import Dashboard from './pages/Dashboard'
 import Canvas from './pages/Canvas'
 import Photos from './pages/Photos'
 import Play from './pages/Play'
-import LocationPage from './pages/LocationPage'
 import Music from './pages/Music'
 import Notes from './pages/Notes'
 import Settings from './pages/Settings'
@@ -73,14 +72,6 @@ function AppRoutes() {
         element={
           <Gate>
             <Play />
-          </Gate>
-        }
-      />
-      <Route
-        path="/location"
-        element={
-          <Gate>
-            <LocationPage />
           </Gate>
         }
       />
