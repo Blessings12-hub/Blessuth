@@ -14,6 +14,14 @@ export default function Canvas() {
   const [width, setWidth] = useState(4)
   const [hasStrokes, setHasStrokes] = useState(false)
 
+  // window.confirm() is unreliable in iOS home-screen PWAs (a known iOS
+  // WebKit limitation) — using the same inline confirm-box pattern as the
+  // rest of the app instead of the native browser dialog. Especially worth
+  // getting right here, since this action wipes the board for both of you.
+  const [confirmingClear, setConfirmingClear] = useState(false)
+  const [clearBusy, setClearBusy] = useState(false)
+  const [undoBusy, setUndoBusy] = useState(false)
+
   function clearCanvas() {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -76,8 +84,9 @@ export default function Canvas() {
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'board_strokes', filter: `couple_id=eq.${couple.id}` },
         () => {
-          // A clear deletes every row — simplest correct response is to
-          // just reload rather than track individual deletions.
+          // A clear (or an undo) deletes one or more rows — simplest
+          // correct response is to just reload rather than track individual
+          // deletions.
           loadBoard()
         }
       )
@@ -152,12 +161,23 @@ export default function Canvas() {
     })
   }
 
+  async function undoLast() {
+    const strokes = strokesRef.current
+    if (strokes.length === 0) return
+    setUndoBusy(true)
+    const last = strokes[strokes.length - 1]
+    await supabase.from('board_strokes').delete().eq('id', last.id)
+    setUndoBusy(false)
+  }
+
   async function clearBoard() {
-    if (!confirm('Clear the whole canvas for both of you?')) return
+    setClearBusy(true)
     await supabase.from('board_strokes').delete().eq('couple_id', couple.id)
     clearCanvas()
     strokesRef.current = []
     setHasStrokes(false)
+    setClearBusy(false)
+    setConfirmingClear(false)
   }
 
   return (
@@ -200,9 +220,29 @@ export default function Canvas() {
           value={width}
           onChange={(e) => setWidth(Number(e.target.value))}
         />
-        <button className="link-btn" onClick={clearBoard}>
-          Clear board
-        </button>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <button className="link-btn" onClick={undoLast} disabled={!hasStrokes || undoBusy}>
+            {undoBusy ? 'Undoing…' : 'Undo last stroke'}
+          </button>
+          {!confirmingClear ? (
+            <button className="link-btn" onClick={() => setConfirmingClear(true)} disabled={!hasStrokes}>
+              Clear board
+            </button>
+          ) : null}
+        </div>
+        {confirmingClear && (
+          <div className="confirm-box">
+            <p>Clear the whole canvas for both of you?</p>
+            <div className="row">
+              <button className="danger-btn" onClick={clearBoard} disabled={clearBusy}>
+                {clearBusy ? 'Clearing…' : 'Yes, clear it'}
+              </button>
+              <button type="button" onClick={() => setConfirmingClear(false)} disabled={clearBusy}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

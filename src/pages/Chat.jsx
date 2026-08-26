@@ -57,6 +57,7 @@ export default function Chat() {
   const [editText, setEditText] = useState('')
   const [reactions, setReactions] = useState({}) // { [messageId]: { [userId]: emoji } }
   const [queued, setQueued] = useState([]) // messages waiting to send once back online
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   const bottomRef = useRef(null)
   const presenceChannelRef = useRef(null)
@@ -357,6 +358,7 @@ export default function Chat() {
   async function deleteMessage(id) {
     await supabase.from('messages').delete().eq('id', id)
     setActiveId(null)
+    setConfirmDeleteId(null)
   }
 
   async function react(messageId, emoji) {
@@ -417,7 +419,10 @@ export default function Chat() {
                 onClick={() => {
                   // A plain tap only closes an already-open action panel —
                   // opening one is a long-press, handled below.
-                  if (!editing && activeId === m.id) setActiveId(null)
+                  if (!editing && activeId === m.id) {
+                    setActiveId(null)
+                    setConfirmDeleteId(null)
+                  }
                 }}
                 onTouchStart={() => !editing && startPress(m.id)}
                 onTouchEnd={cancelPress}
@@ -485,9 +490,20 @@ export default function Chat() {
                         <button type="button" onClick={() => startEdit(m)}>
                           Edit
                         </button>
-                        <button type="button" onClick={() => deleteMessage(m.id)}>
-                          Delete
-                        </button>
+                        {confirmDeleteId === m.id ? (
+                          <>
+                            <button type="button" onClick={() => deleteMessage(m.id)}>
+                              Confirm delete
+                            </button>
+                            <button type="button" onClick={() => setConfirmDeleteId(null)}>
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button type="button" onClick={() => setConfirmDeleteId(m.id)}>
+                            Delete
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

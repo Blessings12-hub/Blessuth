@@ -10,6 +10,7 @@ export default function Notes() {
   const [text, setText] = useState('')
   const [activeId, setActiveId] = useState(null)
   const [reactions, setReactions] = useState({}) // { [noteId]: { [userId]: emoji } }
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const pressTimer = useRef(null)
 
   function startPress(id) {
@@ -123,6 +124,7 @@ export default function Notes() {
   async function remove(id) {
     await supabase.from('notes').delete().eq('id', id)
     setActiveId(null)
+    setConfirmDeleteId(null)
   }
 
   async function react(noteId, emoji) {
@@ -160,7 +162,10 @@ export default function Notes() {
               key={n.id}
               className={'note-card' + (mine ? ' mine' : '')}
               onClick={() => {
-                if (activeId === n.id) setActiveId(null)
+                if (activeId === n.id) {
+                  setActiveId(null)
+                  setConfirmDeleteId(null)
+                }
               }}
               onTouchStart={() => startPress(n.id)}
               onTouchEnd={cancelPress}
@@ -201,9 +206,20 @@ export default function Notes() {
                   </div>
                   {mine && (
                     <div className="chat-bubble-actions-row">
-                      <button type="button" onClick={() => remove(n.id)}>
-                        Delete
-                      </button>
+                      {confirmDeleteId === n.id ? (
+                        <>
+                          <button type="button" onClick={() => remove(n.id)}>
+                            Confirm delete
+                          </button>
+                          <button type="button" onClick={() => setConfirmDeleteId(null)}>
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button type="button" onClick={() => setConfirmDeleteId(n.id)}>
+                          Delete
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
