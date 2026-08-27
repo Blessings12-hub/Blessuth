@@ -24,31 +24,48 @@ const GAMES = [
 ]
 
 const RECENT_KEY = 'blessuth-recent-games'
+const FAVORITES_KEY = 'blessuth-favorite-games'
 
-function loadRecent() {
+function loadJSON(key) {
   try {
-    const raw = localStorage.getItem(RECENT_KEY)
+    const raw = localStorage.getItem(key)
     return raw ? JSON.parse(raw) : []
   } catch {
     return []
   }
 }
 
-function recordPlayed(key) {
+function saveJSON(key, value) {
   try {
-    const recent = loadRecent().filter((k) => k !== key)
-    recent.unshift(key)
-    localStorage.setItem(RECENT_KEY, JSON.stringify(recent.slice(0, 10)))
+    localStorage.setItem(key, JSON.stringify(value))
   } catch {
-    // localStorage can fail (private browsing, storage full) — sorting just
-    // falls back to the default order, nothing else depends on this.
+    // localStorage can fail (private browsing, storage full) — sorting and
+    // favoriting just silently fall back to defaults, nothing else depends
+    // on this succeeding.
   }
 }
 
-function sortedByRecent(games) {
-  const recent = loadRecent()
-  if (recent.length === 0) return games
+function recordPlayed(key) {
+  const recent = loadJSON(RECENT_KEY).filter((k) => k !== key)
+  recent.unshift(key)
+  saveJSON(RECENT_KEY, recent.slice(0, 10))
+}
+
+function toggleFavorite(key) {
+  const favorites = loadJSON(FAVORITES_KEY)
+  const next = favorites.includes(key) ? favorites.filter((k) => k !== key) : [...favorites, key]
+  saveJSON(FAVORITES_KEY, next)
+  return next
+}
+
+// Favorites always lead, then whatever's been played most recently, then
+// everything else in its original order — gives people direct control
+// (favoriting) plus a sensible default (recency) without forcing either.
+function orderGames(games, favorites, recent) {
   return [...games].sort((a, b) => {
+    const aFav = favorites.includes(a.key)
+    const bFav = favorites.includes(b.key)
+    if (aFav !== bFav) return aFav ? -1 : 1
     const ai = recent.indexOf(a.key)
     const bi = recent.indexOf(b.key)
     if (ai === -1 && bi === -1) return 0
@@ -60,13 +77,19 @@ function sortedByRecent(games) {
 
 export default function GamesHub({ onGoToQuizzes }) {
   const [activeKey, setActiveKey] = useState(null)
+  const [favorites, setFavorites] = useState(() => loadJSON(FAVORITES_KEY))
   const active = GAMES.find((g) => g.key === activeKey)
-  const orderedGames = sortedByRecent(GAMES)
-  const hasRecent = loadRecent().length > 0
+  const recent = loadJSON(RECENT_KEY)
+  const orderedGames = orderGames(GAMES, favorites, recent)
 
   function openGame(key) {
     recordPlayed(key)
     setActiveKey(key)
+  }
+
+  function handleFavoriteClick(e, key) {
+    e.stopPropagation()
+    setFavorites(toggleFavorite(key))
   }
 
   if (active) {
@@ -78,21 +101,73 @@ export default function GamesHub({ onGoToQuizzes }) {
     <>
       <p className="subtitle">
         Bite-sized 2-player games, built right into the app.
-        {hasRecent && ' Your most recent ones show up first.'}
+        {favorites.length > 0 ? ' Your favorites are pinned to the top.' : ' Tap the star on any game to pin it to the top.'}
       </p>
 
+      {/* Trivia Battle isn't a game in its own right — it's the head-to-head
+          scoreboard built from your Quiz answers, so this is a shortcut
+          into the Quizzes tab, deliberately styled apart from the grid of
+          actual games below so it doesn't read as "one of the games." */}
+      <button
+        onClick={onGoToQuizzes}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          background: 'linear-gradient(135deg, var(--ink), #3a3f6d)',
+          color: 'white',
+          border: 'none',
+          borderRadius: 'var(--radius)',
+          padding: '14px 16px',
+          marginBottom: 16,
+          textAlign: 'left',
+          cursor: 'pointer',
+        }}
+      >
+        <div style={{ fontSize: '1.6rem' }}>🏆</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: '0.95rem' }}>Trivia Battle</div>
+          <div style={{ fontSize: '0.75rem', color: '#d8d9ec' }}>
+            Your head-to-head score, built from your Quizzes — tap to view
+          </div>
+        </div>
+        <div style={{ fontSize: '1.1rem', color: '#d8d9ec' }}>→</div>
+      </button>
+
       <div className="games-grid">
-        <button className="game-tile" onClick={onGoToQuizzes}>
-          <div className="game-tile-icon">🏆</div>
-          <div className="game-tile-title">Trivia Battle</div>
-          <div className="game-tile-desc">Head-to-head score, in the Quizzes tab</div>
-        </button>
         {orderedGames.map((g) => (
-          <button key={g.key} className="game-tile" onClick={() => openGame(g.key)}>
+          <div
+            key={g.key}
+            className="game-tile"
+            role="button"
+            tabIndex={0}
+            onClick={() => openGame(g.key)}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openGame(g.key)}
+            style={{ position: 'relative' }}
+          >
+            <button
+              onClick={(e) => handleFavoriteClick(e, g.key)}
+              aria-label={favorites.includes(g.key) ? 'Unpin' : 'Pin to top'}
+              style={{
+                position: 'absolute',
+                top: 6,
+                right: 8,
+                background: 'none',
+                border: 'none',
+                fontSize: '1.1rem',
+                color: favorites.includes(g.key) ? 'var(--gold)' : 'var(--border)',
+                cursor: 'pointer',
+                padding: 4,
+                lineHeight: 1,
+              }}
+            >
+              {favorites.includes(g.key) ? '★' : '☆'}
+            </button>
             <div className="game-tile-icon">{g.icon}</div>
             <div className="game-tile-title">{g.title}</div>
             <div className="game-tile-desc">{g.desc}</div>
-          </button>
+          </div>
         ))}
       </div>
     </>
