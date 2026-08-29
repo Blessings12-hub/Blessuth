@@ -15,6 +15,7 @@ import Notes from './pages/Notes'
 import Settings from './pages/Settings'
 import Chat from './pages/Chat'
 import Wishlist from './pages/Wishlist'
+import BibleStudy from './pages/BibleStudy'
 
 function Gate({ children }) {
   const { user, profile, loading } = useAuth()
@@ -112,6 +113,14 @@ function AppRoutes() {
         element={
           <Gate>
             <Wishlist />
+          </Gate>
+        }
+      />
+      <Route
+        path="/bible"
+        element={
+          <Gate>
+            <BibleStudy />
           </Gate>
         }
       />
