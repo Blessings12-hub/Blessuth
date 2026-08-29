@@ -20,6 +20,38 @@ Respond with ONLY a JSON object matching this exact shape, no other text:
 
 const MODEL = 'gemini-flash-latest'
 
+// Free-tier Gemini occasionally returns a transient "model overloaded"
+// error (503) or rate-limit error (429) during demand spikes — retrying
+// once after a short pause clears most of these. Kept to a single retry
+// with a short delay: Vercel's free Hobby plan caps functions at 10
+// seconds total, so there isn't room for a longer retry budget.
+async function callGemini(apiKey, body) {
+  const maxAttempts = 2
+  let lastError = null
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }
+    )
+    const data = await response.json()
+    if (!data.error) return data
+
+    lastError = data.error
+    const retryable = data.error.code === 503 || data.error.code === 429
+    if (!retryable || attempt === maxAttempts) break
+    await new Promise((resolve) => setTimeout(resolve, 600))
+  }
+
+  const err = new Error(lastError?.message || 'The AI service returned an error.')
+  err.overloaded = lastError?.code === 503 || lastError?.code === 429
+  throw err
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'method not allowed' })
@@ -47,24 +79,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [{ parts }],
-          generationConfig: { responseMimeType: 'application/json' },
-        }),
-      }
-    )
-
-    const data = await response.json()
-    if (data.error) {
-      res.status(200).json({ error: data.error.message || 'The AI service returned an error.' })
-      return
-    }
+    const data = await callGemini(apiKey, {
+      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [{ parts }],
+      generationConfig: { responseMimeType: 'application/json' },
+    })
 
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
     const parsed = JSON.parse(raw)
@@ -75,6 +94,10 @@ export default async function handler(req, res) {
       prayerPoints: Array.isArray(parsed.prayerPoints) ? parsed.prayerPoints.slice(0, 5) : [],
     })
   } catch (err) {
-    res.status(200).json({ error: 'Could not analyze that verse — you can still save it as you typed it.' })
+    res.status(200).json({
+      error: err.overloaded
+        ? "Google's AI is busy right now — please try again in a minute."
+        : 'Could not analyze that verse — you can still save it as you typed it.',
+    })
   }
 }
