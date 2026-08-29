@@ -5,6 +5,14 @@
 // that couple. One-time reminders are deleted after firing; daily/weekly
 // ones get rescheduled to their next occurrence.
 //
+// Runs once a day (Vercel's free Hobby plan only allows daily cron
+// schedules — anything more frequent is rejected at deploy time). That
+// means a reminder can fire up to ~24 hours after its set time, not at the
+// exact minute. If you ever want tighter timing, the fix isn't a Vercel
+// upgrade — this route is a normal HTTP endpoint, so any free external
+// scheduler (e.g. cron-job.org) can call it hourly instead; Vercel's own
+// cron limit only applies to Vercel's own scheduler, not to this endpoint.
+//
 // Needs one environment variable in Vercel:
 //   CRON_SECRET — any random string you choose. Vercel automatically sends
 //   it as `Authorization: Bearer <value>` on cron-triggered requests once
@@ -31,8 +39,9 @@ export default async function handler(req, res) {
   let fired = 0
   for (const reminder of due || []) {
     // Guard against double-firing if a run overlaps or retries — skip
-    // anything already fired in roughly the last cron interval.
-    if (reminder.last_fired_at && now - new Date(reminder.last_fired_at) < 50 * 60 * 1000) continue
+    // anything already fired within roughly the last cron interval (this
+    // cron runs daily, so a wide guard here is intentional).
+    if (reminder.last_fired_at && now - new Date(reminder.last_fired_at) < 20 * 60 * 60 * 1000) continue
 
     const { data: couple } = await supabase
       .from('couples')
