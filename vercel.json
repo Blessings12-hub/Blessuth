@@ -3,6 +3,6 @@
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "crons": [
-    { "path": "/api/check-bible-reminders", "schedule": "0 * * * *" }
+    { "path": "/api/check-bible-reminders", "schedule": "0 13 * * *" }
   ]
 }
