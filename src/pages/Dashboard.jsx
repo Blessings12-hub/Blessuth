@@ -19,6 +19,7 @@ import {
   QuizIcon,
   HeadphonesIcon,
   GiftIcon,
+  BookIcon,
 } from '../components/Icons'
 
 function daysUntil(dateStr) {
@@ -130,6 +131,7 @@ export default function Dashboard() {
     { to: '/canvas', label: 'Shared Canvas', Icon: CanvasIcon, desc: 'Doodle together, live' },
     { to: '/photos', label: 'Photo Memories', Icon: PhotoIcon, desc: 'Your shared album' },
     { to: '/wishlist', label: 'Wishlist', Icon: GiftIcon, desc: "Pin things you'd like to get" },
+    { to: '/bible', label: 'Bible Study', Icon: BookIcon, desc: 'Share verses, get prayer points, set reminders' },
     { to: '/play', label: 'Quizzes & Games', Icon: QuizIcon, desc: 'How well do you know each other?' },
     { to: '/music', label: 'Mood & Music', Icon: HeadphonesIcon, desc: "What you're feeling / playing" },
     { to: '/notes', label: 'Love Notes', Icon: MailIcon, desc: 'Little messages, anytime' },
