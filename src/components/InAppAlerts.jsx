@@ -18,7 +18,7 @@ export function setAlertsMuted(muted) {
 }
 
 export default function InAppAlerts() {
-  const { couple, partnerUid, partnerName } = useAuth()
+  const { user, couple, partnerUid, partnerName } = useAuth()
   const navigate = useNavigate()
   const [muted, setMuted] = useState(alertsMuted)
 
@@ -34,6 +34,7 @@ export default function InAppAlerts() {
 
   const { alerts, dismiss } = useInAppAlerts({
     coupleId: couple?.id || null,
+    userId: user?.id || null,
     partnerUid,
     partnerName,
     muted,

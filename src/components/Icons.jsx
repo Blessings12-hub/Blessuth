@@ -178,6 +178,15 @@ export function GiftIcon(props) {
   )
 }
 
+export function BookIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" width={props.size || 20} height={props.size || 20} {...base} className={props.className}>
+      <path d="M4 5.5c2-1 4.5-1 7 0v13c-2.5-1-5-1-7 0Z" />
+      <path d="M20 5.5c-2-1-4.5-1-7 0v13c2.5-1 5-1 7 0Z" />
+    </svg>
+  )
+}
+
 export function CalendarIcon(props) {
   return (
     <svg viewBox="0 0 24 24" width={props.size || 20} height={props.size || 20} {...base} className={props.className}>
