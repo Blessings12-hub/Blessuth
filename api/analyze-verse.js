@@ -1,22 +1,24 @@
 // Vercel Serverless Function: /api/analyze-verse
 //
 // Given either typed text or a photo (e.g. a screenshot of a Bible app or a
-// photo of a page), asks Claude to identify the reference, transcribe the
+// photo of a page), asks Gemini to identify the reference, transcribe the
 // verse, and write a few short, specific prayer points inspired by it.
 //
 // Needs one environment variable in Vercel:
-//   ANTHROPIC_API_KEY — from console.anthropic.com → API Keys. This is a
-//   separate account/key from anything else in this project; there's a
-//   small usage-based cost per request (typically a fraction of a cent
-//   each for a task this size).
+//   GEMINI_API_KEY — free, from Google AI Studio (aistudio.google.com) →
+//   Get API key. No credit card required. Gemini's Flash models have a
+//   genuine free tier (not a trial credit) generous enough for a couple
+//   occasionally sharing verses — well under the daily limit.
 
 const SYSTEM_PROMPT = `You help a couple with their shared Bible study. Given either a passage of Bible text (possibly informally typed, possibly with a reference, possibly without) or a photo of a Bible page or app screenshot, do three things:
 1. Identify the most likely Bible reference (book, chapter, verse) if you can determine it. If genuinely uncertain, use null.
 2. Transcribe/confirm the verse text as accurately as you can.
 3. Write 3 to 5 short, specific prayer points (one sentence each) inspired by the themes, promises, or instructions in this passage — practical and personal, not generic platitudes.
 
-Respond with ONLY a JSON object, no markdown fences, no preamble, no explanation:
+Respond with ONLY a JSON object matching this exact shape, no other text:
 {"reference": "Book Chapter:Verse" or null, "verseText": "...", "prayerPoints": ["...", "...", "..."]}`
+
+const MODEL = 'gemini-flash-latest'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -24,9 +26,9 @@ export default async function handler(req, res) {
     return
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
-    res.status(200).json({ error: 'AI analysis isn\'t set up yet — ANTHROPIC_API_KEY is missing in Vercel.' })
+    res.status(200).json({ error: "AI analysis isn't set up yet — GEMINI_API_KEY is missing in Vercel." })
     return
   }
 
@@ -36,32 +38,27 @@ export default async function handler(req, res) {
     return
   }
 
-  const content = []
+  const parts = []
   if (imageBase64) {
-    content.push({
-      type: 'image',
-      source: { type: 'base64', media_type: imageMediaType || 'image/jpeg', data: imageBase64 },
-    })
-    content.push({ type: 'text', text: 'Here is a photo of a Bible verse or passage.' })
+    parts.push({ inline_data: { mime_type: imageMediaType || 'image/jpeg', data: imageBase64 } })
+    parts.push({ text: 'Here is a photo of a Bible verse or passage.' })
   } else {
-    content.push({ type: 'text', text })
+    parts.push({ text })
   }
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-5',
-        max_tokens: 600,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content }],
-      }),
-    })
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: [{ parts }],
+          generationConfig: { responseMimeType: 'application/json' },
+        }),
+      }
+    )
 
     const data = await response.json()
     if (data.error) {
@@ -69,9 +66,8 @@ export default async function handler(req, res) {
       return
     }
 
-    const raw = data?.content?.find((b) => b.type === 'text')?.text || ''
-    const cleaned = raw.replace(/```json|```/g, '').trim()
-    const parsed = JSON.parse(cleaned)
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    const parsed = JSON.parse(raw)
 
     res.status(200).json({
       reference: parsed.reference || null,
@@ -79,6 +75,6 @@ export default async function handler(req, res) {
       prayerPoints: Array.isArray(parsed.prayerPoints) ? parsed.prayerPoints.slice(0, 5) : [],
     })
   } catch (err) {
-    res.status(200).json({ error: "Could not analyze that verse — you can still save it as you typed it." })
+    res.status(200).json({ error: 'Could not analyze that verse — you can still save it as you typed it.' })
   }
 }
