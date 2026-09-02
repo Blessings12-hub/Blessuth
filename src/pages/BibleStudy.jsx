@@ -127,6 +127,7 @@ export default function BibleStudy() {
         verse_text: data.verseText,
         image_path: imagePath,
         prayer_points: data.prayerPoints || [],
+        verse_source: data.verseSource || null,
       })
 
       setTextInput('')
@@ -232,7 +233,27 @@ export default function BibleStudy() {
                 />
               )}
               <div className="wishlist-card-body">
-                {v.reference && <p className="wishlist-card-title">{v.reference}</p>}
+                {v.reference && (
+                  <p className="wishlist-card-title">
+                    {v.reference}
+                    {v.verse_source && (
+                      <span
+                        style={{
+                          marginLeft: 8,
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          color: 'var(--teal)',
+                          background: '#e4f3ee',
+                          borderRadius: 999,
+                          padding: '2px 8px',
+                          verticalAlign: 'middle',
+                        }}
+                      >
+                        {v.verse_source}
+                      </span>
+                    )}
+                  </p>
+                )}
                 {v.verse_text && (
                   <p className="wishlist-card-note" style={{ fontStyle: 'italic' }}>
                     "{v.verse_text}"
