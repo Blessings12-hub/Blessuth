@@ -33,6 +33,7 @@ html,
 body,
 #root {
   height: 100%;
+  height: 100dvh;
 }
 
 body {
@@ -94,12 +95,14 @@ textarea::placeholder {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  height: 100dvh;
   color: var(--muted);
 }
 
 .loading-screen {
   position: relative;
   height: 100vh;
+  height: 100dvh;
   width: 100%;
   overflow: hidden;
   background: var(--bg);
@@ -331,7 +334,7 @@ a {
 }
 
 .with-nav {
-  padding-bottom: 96px;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
 .dash-header {
@@ -654,7 +657,9 @@ a {
   color: var(--muted);
   font-size: 0.65rem;
   gap: 2px;
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 2px;
 }
 
 .nav-icon {
@@ -663,6 +668,32 @@ a {
   align-items: center;
   justify-content: center;
   position: relative;
+}
+
+.nav-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Shrink further on narrow phones so all 7 tabs stay on one row, in view, with no scrolling */
+@media (max-width: 400px) {
+  .nav-item {
+    font-size: 0.58rem;
+  }
+  .nav-icon {
+    font-size: 1.05rem;
+  }
+}
+
+@media (max-width: 340px) {
+  .nav-item {
+    font-size: 0.52rem;
+  }
+  .nav-icon {
+    font-size: 0.95rem;
+  }
 }
 
 .nav-badge {
@@ -2465,6 +2496,10 @@ a {
 .couple-avatars {
   display: flex;
   flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
 }
 
 .avatar {
@@ -2495,6 +2530,88 @@ a {
 .avatar.theirs {
   background: var(--teal);
   margin-left: -12px;
+}
+
+/* ---- Enlarged profile-picture view ---- */
+.photo-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(12, 12, 16, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.photo-overlay-card {
+  position: relative;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 32px 24px 24px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.photo-overlay-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--muted);
+  padding: 8px;
+}
+
+.photo-overlay-row {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+}
+
+.photo-overlay-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.photo-overlay-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--sunset);
+  color: white;
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 2.2rem;
+}
+
+.photo-overlay-person:last-child .photo-overlay-circle {
+  background: var(--teal);
+}
+
+.photo-overlay-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-overlay-person p {
+  margin: 0;
+  font-weight: 600;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ---- On this day ---- */
