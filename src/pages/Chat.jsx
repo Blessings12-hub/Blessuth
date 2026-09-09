@@ -472,7 +472,7 @@ export default function Chat() {
   const showSeenStatus = lastMessage && lastMessage.sender_id === user?.id && queued.length === 0
 
   return (
-    <div className="screen with-nav chat-screen">
+    <div className="screen chat-screen">
       <div className="chat-header-row">
         <div>
           <h2>Chat</h2>
