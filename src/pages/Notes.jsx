@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
+import { useVoiceRecorder } from '../hooks/useVoiceRecorder'
+import VoiceNotePlayer from '../components/VoiceNotePlayer'
 
 const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥']
 
@@ -8,10 +10,15 @@ export default function Notes() {
   const { couple, user, profile } = useAuth()
   const [notes, setNotes] = useState([])
   const [text, setText] = useState('')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
   const [activeId, setActiveId] = useState(null)
   const [reactions, setReactions] = useState({}) // { [noteId]: { [userId]: emoji } }
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const pressTimer = useRef(null)
+
+  const { recording, error: micError, start: startRecording, stop: stopRecording, cancel: cancelRecording } =
+    useVoiceRecorder()
 
   function startPress(id) {
     cancelPress()
@@ -62,16 +69,34 @@ export default function Notes() {
     })
   }
 
+  // Marks any of your partner's notes you haven't seen yet — mirrors the
+  // same read_at pattern Chat already uses, just under the name Notes
+  // already talks about itself with.
+  async function markSeen() {
+    if (!couple || !user) return
+    await supabase
+      .from('notes')
+      .update({ seen_at: new Date().toISOString() })
+      .eq('couple_id', couple.id)
+      .neq('from_uid', user.id)
+      .is('seen_at', null)
+  }
+
   useEffect(() => {
     if (!couple) return
     loadNotes()
     loadReactions()
+    markSeen()
+
     const channel = supabase
       .channel(`notes-${couple.id}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'notes', filter: `couple_id=eq.${couple.id}` },
-        loadNotes
+        (payload) => {
+          loadNotes()
+          if (payload.eventType === 'INSERT' && payload.new.from_uid !== user.id) markSeen()
+        }
       )
       .subscribe()
     const reactionsChannel = supabase
@@ -97,6 +122,7 @@ export default function Notes() {
       if (document.visibilityState === 'visible') {
         loadNotes()
         loadReactions()
+        markSeen()
       }
     }
     document.addEventListener('visibilitychange', onVisible)
@@ -121,6 +147,42 @@ export default function Notes() {
     setText('')
   }
 
+  async function sendVoiceNote(blob) {
+    if (!blob || !couple) return
+    if (!navigator.onLine) {
+      setError('You need to be online to send a voice note.')
+      return
+    }
+    setSending(true)
+    setError('')
+    try {
+      const path = `${couple.id}/notes/${Date.now()}_voice.webm`
+      const { error: uploadError } = await supabase.storage.from('photos').upload(path, blob)
+      if (uploadError) throw uploadError
+      const { error: err } = await supabase.from('notes').insert({
+        couple_id: couple.id,
+        text: null,
+        from_name: profile?.display_name || 'Me',
+        from_uid: user.id,
+        audio_path: path,
+      })
+      if (err) throw err
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function handleMicTap() {
+    if (recording) {
+      const blob = await stopRecording()
+      if (blob) sendVoiceNote(blob)
+    } else {
+      startRecording()
+    }
+  }
+
   async function remove(id) {
     await supabase.from('notes').delete().eq('id', id)
     setActiveId(null)
@@ -139,6 +201,10 @@ export default function Notes() {
     setActiveId(null)
   }
 
+  // Notes list newest-first, so the "latest note" is whichever is first —
+  // if that one's mine, this is where a "Seen" indicator belongs.
+  const latestNote = notes[0]
+
   return (
     <div className="screen with-nav">
       <h2>Love Notes</h2>
@@ -150,9 +216,28 @@ export default function Notes() {
           placeholder="Write a little note…"
           value={text}
           onChange={(e) => setText(e.target.value)}
+          disabled={recording}
         />
-        <button type="submit">Send</button>
+        <button
+          type="button"
+          className={'chat-attach-btn' + (recording ? ' recording' : '')}
+          title={recording ? 'Stop and send' : 'Record a voice note'}
+          onClick={handleMicTap}
+          disabled={sending}
+        >
+          {recording ? '⏹️' : '🎤'}
+        </button>
+        <button type="submit" disabled={recording || !text.trim()}>
+          Send
+        </button>
       </form>
+      {recording && (
+        <button className="link-btn small" onClick={cancelRecording}>
+          Cancel recording
+        </button>
+      )}
+      {error && <p className="error">{error}</p>}
+      {micError && <p className="error">{micError}</p>}
 
       <div className="notes-list">
         {notes.map((n) => {
@@ -175,9 +260,15 @@ export default function Notes() {
               onMouseLeave={cancelPress}
               onContextMenu={(e) => e.preventDefault()}
             >
-              <div className="note-text">{n.text}</div>
+              {n.audio_path && <VoiceNotePlayer path={n.audio_path} />}
+              {n.text && <div className="note-text">{n.text}</div>}
               <div className="note-meta">
                 <span>{n.from_name}</span>
+                {mine && n.id === latestNote?.id && (
+                  <span className="subtitle small-note" style={{ marginLeft: 6 }}>
+                    {n.seen_at ? '· Seen' : '· Delivered'}
+                  </span>
+                )}
               </div>
 
               {Object.keys(reactions[n.id] || {}).length > 0 && (

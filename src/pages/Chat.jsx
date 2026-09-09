@@ -1,9 +1,13 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
+import { resizeImage } from '../imageResize'
+import { useVoiceRecorder } from '../hooks/useVoiceRecorder'
+import VoiceNotePlayer from '../components/VoiceNotePlayer'
 
 const PAGE_SIZE = 50
 const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥']
+const SIGNED_URL_TTL = 60 * 60
 
 function dayLabel(iso) {
   const d = new Date(iso)
@@ -42,6 +46,36 @@ function saveQueuedToStorage(coupleId, queue) {
   }
 }
 
+// Resolves a private-storage image path to a signed URL lazily, one per
+// bubble — simpler than bulk-resolving on every page load, and images only
+// ever need loading once they're actually rendered.
+function ChatImage({ path, onOpen }) {
+  const [url, setUrl] = useState(null)
+  useEffect(() => {
+    let cancelled = false
+    supabase
+      .storage
+      .from('photos')
+      .createSignedUrl(path, SIGNED_URL_TTL)
+      .then(({ data }) => {
+        if (!cancelled && data?.signedUrl) setUrl(data.signedUrl)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [path])
+  if (!url) return null
+  return (
+    <img
+      src={url}
+      alt=""
+      className="chat-bubble-image"
+      onClick={() => onOpen(url)}
+      style={{ maxWidth: '100%', borderRadius: 12, cursor: 'zoom-in', display: 'block' }}
+    />
+  )
+}
+
 export default function Chat() {
   const { couple, user, partnerName, profile } = useAuth()
   const [messages, setMessages] = useState([])
@@ -58,6 +92,7 @@ export default function Chat() {
   const [reactions, setReactions] = useState({}) // { [messageId]: { [userId]: emoji } }
   const [queued, setQueued] = useState([]) // messages waiting to send once back online
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [lightboxUrl, setLightboxUrl] = useState(null)
 
   const bottomRef = useRef(null)
   const presenceChannelRef = useRef(null)
@@ -65,6 +100,9 @@ export default function Chat() {
   const myTypingResetRef = useRef(null)
   const queuedRef = useRef([]) // mirrors `queued`, so flushQueue always reads the latest list
   const pressTimer = useRef(null)
+
+  const { recording, error: micError, start: startRecording, stop: stopRecording, cancel: cancelRecording } =
+    useVoiceRecorder()
 
   function startPress(id) {
     cancelPress()
@@ -228,9 +266,6 @@ export default function Chat() {
       )
       .subscribe()
 
-    // Realtime sockets can silently drop while the tab sits backgrounded
-    // (phone locked, app-switched). Re-sync from scratch, and try sending
-    // anything still queued, whenever the tab becomes visible again.
     function onVisible() {
       if (document.visibilityState !== 'visible') return
       loadInitial()
@@ -250,7 +285,6 @@ export default function Chat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couple?.id])
 
-  // Presence (online dot) + typing broadcast on a separate lightweight channel.
   useEffect(() => {
     if (!couple || !user) return
     const channel = supabase.channel(`chat-presence-${couple.id}`, {
@@ -284,8 +318,6 @@ export default function Chat() {
     }
   }, [couple?.id, user?.id])
 
-  // Only autoscroll when the newest message/queued item actually changes
-  // (not when older history gets prepended via "Load earlier").
   const lastId = messages[messages.length - 1]?.id || queued[queued.length - 1]?.localId
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' })
@@ -329,16 +361,76 @@ export default function Chat() {
 
     if (err) {
       if (err.code) {
-        // A real rejection from the server (bad data, permissions, etc) —
-        // show it, rather than silently queuing something that can never
-        // succeed on retry.
         setError(err.message)
         setText(value)
       } else {
-        // No error code usually means the request never reached the
-        // server at all — a dropped connection, not a rejection.
         setQueuedAndPersist((prev) => [...prev, pending])
       }
+    }
+  }
+
+  async function sendImage(file) {
+    if (!file || !couple) return
+    if (!navigator.onLine) {
+      setError('You need to be online to send a photo.')
+      return
+    }
+    setSending(true)
+    setError('')
+    try {
+      const resized = await resizeImage(file, 1000, 0.82)
+      const path = `${couple.id}/chat/${Date.now()}_${file.name}`
+      const { error: uploadError } = await supabase.storage.from('photos').upload(path, resized)
+      if (uploadError) throw uploadError
+      const { error: err } = await supabase.from('messages').insert({
+        couple_id: couple.id,
+        sender_id: user.id,
+        sender_name: profile?.display_name || 'Me',
+        text: text.trim() || null,
+        image_path: path,
+      })
+      if (err) throw err
+      setText('')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function sendVoiceNote(blob) {
+    if (!blob || !couple) return
+    if (!navigator.onLine) {
+      setError('You need to be online to send a voice note.')
+      return
+    }
+    setSending(true)
+    setError('')
+    try {
+      const path = `${couple.id}/chat/${Date.now()}_voice.webm`
+      const { error: uploadError } = await supabase.storage.from('photos').upload(path, blob)
+      if (uploadError) throw uploadError
+      const { error: err } = await supabase.from('messages').insert({
+        couple_id: couple.id,
+        sender_id: user.id,
+        sender_name: profile?.display_name || 'Me',
+        text: null,
+        audio_path: path,
+      })
+      if (err) throw err
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function handleMicTap() {
+    if (recording) {
+      const blob = await stopRecording()
+      if (blob) sendVoiceNote(blob)
+    } else {
+      startRecording()
     }
   }
 
@@ -417,8 +509,6 @@ export default function Chat() {
               <div
                 className={'chat-bubble' + (mine ? ' mine' : ' theirs')}
                 onClick={() => {
-                  // A plain tap only closes an already-open action panel —
-                  // opening one is a long-press, handled below.
                   if (!editing && activeId === m.id) {
                     setActiveId(null)
                     setConfirmDeleteId(null)
@@ -453,7 +543,9 @@ export default function Chat() {
                   </form>
                 ) : (
                   <>
-                    <div className="chat-bubble-text">{m.text}</div>
+                    {m.image_path && <ChatImage path={m.image_path} onOpen={setLightboxUrl} />}
+                    {m.audio_path && <VoiceNotePlayer path={m.audio_path} />}
+                    {m.text && <div className="chat-bubble-text">{m.text}</div>}
                     <div className="chat-bubble-time">
                       {timeLabel(m.created_at)}
                       {m.edited_at ? ' · edited' : ''}
@@ -487,9 +579,11 @@ export default function Chat() {
                     </div>
                     {mine && (
                       <div className="chat-bubble-actions-row">
-                        <button type="button" onClick={() => startEdit(m)}>
-                          Edit
-                        </button>
+                        {m.text != null && !m.image_path && !m.audio_path && (
+                          <button type="button" onClick={() => startEdit(m)}>
+                            Edit
+                          </button>
+                        )}
                         {confirmDeleteId === m.id ? (
                           <>
                             <button type="button" onClick={() => deleteMessage(m.id)}>
@@ -520,9 +614,7 @@ export default function Chat() {
           </div>
         ))}
 
-        {partnerTyping && (
-          <div className="typing-indicator">{partnerName || 'Partner'} is typing…</div>
-        )}
+        {partnerTyping && <div className="typing-indicator">{partnerName || 'Partner'} is typing…</div>}
 
         {showSeenStatus && !partnerTyping && (
           <div className="chat-seen-status">{lastMessage.read_at ? 'Seen' : 'Delivered'}</div>
@@ -532,6 +624,7 @@ export default function Chat() {
       </div>
 
       {error && <p className="error">{error}</p>}
+      {micError && <p className="error">{micError}</p>}
       {queued.length > 0 && (
         <p className="queued-hint">
           {queued.length === 1 ? '1 message' : `${queued.length} messages`} will send automatically once you're back
@@ -540,16 +633,68 @@ export default function Chat() {
       )}
 
       <form onSubmit={send} className="chat-input-row">
+        <label className="chat-attach-btn" title="Send a photo">
+          📷
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files[0]
+              if (file) sendImage(file)
+              e.target.value = ''
+            }}
+            disabled={sending || recording}
+            hidden
+          />
+        </label>
+        <button
+          type="button"
+          className={'chat-attach-btn' + (recording ? ' recording' : '')}
+          title={recording ? 'Stop and send' : 'Record a voice note'}
+          onClick={handleMicTap}
+          disabled={sending}
+        >
+          {recording ? '⏹️' : '🎤'}
+        </button>
         <input
           type="text"
           placeholder="Type a message…"
           value={text}
           onChange={(e) => handleTyping(e.target.value)}
+          disabled={recording}
         />
-        <button type="submit" disabled={sending || !text.trim()}>
+        <button type="submit" disabled={sending || recording || !text.trim()}>
           Send
         </button>
       </form>
+      {recording && (
+        <button className="link-btn small" onClick={cancelRecording}>
+          Cancel recording
+        </button>
+      )}
+
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 200,
+            background: 'rgba(0, 0, 0, 0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20,
+            cursor: 'zoom-out',
+          }}
+        >
+          <img
+            src={lightboxUrl}
+            alt=""
+            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }}
+          />
+        </div>
+      )}
     </div>
   )
 }
