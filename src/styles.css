@@ -2998,16 +2998,30 @@ a {
 
 
 /* ---- Chat ---- */
+/* The chat screen is capped to the space above the bottom nav (instead of
+   flowing/scrolling with the rest of the page) so the header and input stay
+   fixed in place and only the message thread itself scrolls — the standard
+   chat-app layout. 56px clears the nav's own height with a small margin;
+   env(safe-area-inset-bottom) additionally clears the home-indicator area
+   on notched phones, where the nav itself grows taller. */
 .chat-screen {
   display: flex;
   flex-direction: column;
+  flex: none;
+  height: calc(100vh - 56px - env(safe-area-inset-bottom));
+  height: calc(100dvh - 56px - env(safe-area-inset-bottom));
+  overflow: hidden;
 }
 
 .chat-thread {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin: 8px 0 16px;
+  margin: 8px 0 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .chat-day-divider {
@@ -3074,10 +3088,9 @@ a {
 .chat-input-row {
   display: flex;
   gap: 8px;
-  position: sticky;
-  bottom: 12px;
+  flex-shrink: 0;
   background: var(--bg);
-  padding-top: 4px;
+  padding-top: 8px;
 }
 
 .chat-input-row input {
@@ -3115,6 +3128,7 @@ a {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .presence-dot {
