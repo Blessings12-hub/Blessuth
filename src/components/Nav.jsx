@@ -57,7 +57,7 @@ export default function Nav() {
   }
 
   return (
-    <nav className="bottom-nav" style={{ overflowX: 'auto' }}>
+    <nav className="bottom-nav">
       {items.map((item) => (
         <NavLink
           key={item.to}
@@ -65,7 +65,6 @@ export default function Nav() {
           className={({ isActive }) =>
             'nav-item' + (isActive ? ' active' : '')
           }
-          style={{ flex: '0 0 auto', minWidth: 48, padding: '0 2px' }}
         >
           <span className="nav-icon">
             <item.Icon size={20} />
