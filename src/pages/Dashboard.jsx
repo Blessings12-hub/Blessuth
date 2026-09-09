@@ -63,6 +63,7 @@ function yearsTogether(dateStr) {
 
 export default function Dashboard() {
   const { user, profile, couple, partnerName, partnerTimezone, partnerBirthday, partnerAvatarUrl, logout } = useAuth()
+  const [showPhotos, setShowPhotos] = useState(false)
   const [editingDate, setEditingDate] = useState(false)
   const [dateInput, setDateInput] = useState(couple?.next_visit_date || '')
   const [editingSince, setEditingSince] = useState(false)
@@ -145,22 +146,27 @@ export default function Dashboard() {
 
       <header className="dash-header">
         <div className="dash-header-left">
-          <div className="couple-avatars">
+          <button
+            type="button"
+            className="couple-avatars"
+            onClick={() => setShowPhotos(true)}
+            aria-label="View profile pictures"
+          >
             <span className="avatar mine">
               {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" />
+                <img src={profile.avatar_url} alt={`${profile?.display_name || 'You'}'s profile picture`} />
               ) : (
                 (profile?.display_name || '?')[0].toUpperCase()
               )}
             </span>
             <span className="avatar theirs">
               {partnerAvatarUrl ? (
-                <img src={partnerAvatarUrl} alt="" />
+                <img src={partnerAvatarUrl} alt={`${partnerName || 'Partner'}'s profile picture`} />
               ) : (
                 (partnerName || '?')[0].toUpperCase()
               )}
             </span>
-          </div>
+          </button>
           <div>
             <h1>Hi {profile?.display_name}</h1>
             <p className="subtitle">
@@ -336,6 +342,43 @@ export default function Dashboard() {
           </Link>
         ))}
       </div>
+
+      {showPhotos && (
+        <div className="photo-overlay" onClick={() => setShowPhotos(false)}>
+          <div className="photo-overlay-card" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="photo-overlay-close"
+              onClick={() => setShowPhotos(false)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <div className="photo-overlay-row">
+              <div className="photo-overlay-person">
+                <span className="photo-overlay-circle">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="" />
+                  ) : (
+                    (profile?.display_name || '?')[0].toUpperCase()
+                  )}
+                </span>
+                <p>{profile?.display_name || 'You'}</p>
+              </div>
+              <div className="photo-overlay-person">
+                <span className="photo-overlay-circle">
+                  {partnerAvatarUrl ? (
+                    <img src={partnerAvatarUrl} alt="" />
+                  ) : (
+                    (partnerName || '?')[0].toUpperCase()
+                  )}
+                </span>
+                <p>{partnerName || 'Partner'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

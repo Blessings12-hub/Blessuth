@@ -10,6 +10,7 @@ export default function Canvas() {
   const drawing = useRef(false)
   const currentStroke = useRef([])
   const strokesRef = useRef([]) // mirrors state, for the pointer-move draw loop
+  const notifyTimer = useRef(null) // debounce: fires 10s after the last stroke, not per-stroke
   const [color, setColor] = useState('#2d2d2d')
   const [width, setWidth] = useState(4)
   const [hasStrokes, setHasStrokes] = useState(false)
@@ -213,6 +214,21 @@ export default function Canvas() {
       by: user.id,
       page_number: currentPageNumber,
     })
+
+    // Debounced "finished drawing" notification — every new stroke pushes
+    // this back out, so the partner is only notified once 10 quiet seconds
+    // have actually passed, not once per stroke.
+    if (notifyTimer.current) clearTimeout(notifyTimer.current)
+    notifyTimer.current = setTimeout(() => {
+      notifyTimer.current = null
+      fetch('/api/notify-canvas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coupleId: couple.id, senderId: user.id }),
+      }).catch(() => {
+        // Best-effort — a missed push here isn't worth surfacing to the drawer.
+      })
+    }, 10000)
   }
 
   async function undoLast() {
