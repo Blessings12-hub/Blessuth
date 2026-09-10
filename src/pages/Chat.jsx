@@ -633,7 +633,7 @@ export default function Chat() {
       )}
 
       <form onSubmit={send} className="chat-input-row">
-        <label className="chat-attach-btn" title="Send a photo">
+        <label className={'chat-attach-btn' + (sending || recording ? ' disabled' : '')} title="Send a photo">
           📷
           <input
             type="file"
@@ -663,7 +663,7 @@ export default function Chat() {
           onChange={(e) => handleTyping(e.target.value)}
           disabled={recording}
         />
-        <button type="submit" disabled={sending || recording || !text.trim()}>
+        <button type="submit" className="chat-send-btn" disabled={sending || recording || !text.trim()}>
           Send
         </button>
       </form>

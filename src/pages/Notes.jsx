@@ -227,7 +227,7 @@ export default function Notes() {
         >
           {recording ? '⏹️' : '🎤'}
         </button>
-        <button type="submit" disabled={recording || !text.trim()}>
+        <button type="submit" className="chat-send-btn" disabled={recording || !text.trim()}>
           Send
         </button>
       </form>
