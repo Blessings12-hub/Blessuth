@@ -2291,24 +2291,18 @@ a {
 /* ---- Notes ---- */
 .note-form {
   display: flex;
+  align-items: center;
   gap: 8px;
   margin-bottom: 20px;
 }
 
 .note-form input {
   flex: 1;
-  padding: 12px 14px;
-  border-radius: 12px;
+  min-width: 0;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
   border: 1px solid var(--border);
-}
-
-.note-form button {
-  background: var(--sunset);
-  color: white;
-  border: none;
-  padding: 0 18px;
-  border-radius: 12px;
-  font-weight: 600;
 }
 
 .notes-list {
@@ -3087,31 +3081,66 @@ a {
 
 .chat-input-row {
   display: flex;
+  align-items: center;
   gap: 8px;
   flex-shrink: 0;
   background: var(--bg);
   padding-top: 8px;
 }
 
+/* Photo (label) and voice-note (button) controls — same 44px circle, so
+   they line up with each other and with the input/Send pill regardless of
+   being different element types. */
+.chat-attach-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.chat-attach-btn.recording {
+  background: var(--sunset);
+  border-color: var(--sunset);
+  color: white;
+}
+
+.chat-attach-btn:disabled,
+.chat-attach-btn.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .chat-input-row input {
   flex: 1;
-  padding: 12px 14px;
-  border-radius: 12px;
+  min-width: 0;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
   border: 1px solid var(--border);
   background: var(--surface);
   font-size: 1rem;
 }
 
-.chat-input-row button {
+.chat-send-btn {
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 22px;
   background: var(--sunset);
   color: white;
   border: none;
-  padding: 0 18px;
-  border-radius: 12px;
   font-weight: 600;
 }
 
-.chat-input-row button:disabled {
+.chat-send-btn:disabled {
   opacity: 0.5;
 }
 
