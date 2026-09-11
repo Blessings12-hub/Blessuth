@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { resizeImage } from '../imageResize'
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder'
 import VoiceNotePlayer from '../components/VoiceNotePlayer'
+import PageIntro from '../components/PageIntro'
 
 const PAGE_SIZE = 50
 const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥']
@@ -477,10 +478,7 @@ export default function Chat() {
     <div className="screen chat-screen">
       <div className="chat-header-row">
         <div>
-          <h2>Chat</h2>
-          <p className="subtitle">
-            {partnerName ? `A running conversation with ${partnerName}.` : 'A running conversation with your partner.'}
-          </p>
+  <PageIntro eyebrow="Stay close" title="Chat" description={partnerName ? `A running conversation with ${partnerName}.` : 'A running conversation with your partner.'} />
         </div>
         <span
           className={'presence-dot' + (partnerOnline ? ' online' : '')}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
+import PageIntro from '../components/PageIntro'
 import Logo from '../components/Logo'
 import DailyQuestion from '../components/DailyQuestion'
 import OnThisDay from '../components/OnThisDay'
@@ -177,10 +178,7 @@ export default function Dashboard() {
             </span>
           </button>
           <div>
-            <h1>Hi {profile?.display_name}</h1>
-            <p className="subtitle">
-              {partnerName ? `Connected with ${partnerName}` : 'Waiting to connect…'}
-            </p>
+  <PageIntro eyebrow="Your shared space" title={`Hi ${profile?.display_name || 'there'}`} description={partnerName ? `Connected with ${partnerName}` : 'Waiting to connect…'} />
           </div>
         </div>
         <div className="header-actions">

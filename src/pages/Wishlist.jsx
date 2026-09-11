@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 import { resizeImage } from '../imageResize'
+import PageIntro from '../components/PageIntro'
 
 const SIGNED_URL_TTL = 60 * 60
 
@@ -237,8 +238,7 @@ export default function Wishlist() {
 
   return (
     <div className="screen with-nav">
-      <h2>Wishlist</h2>
-      <p className="subtitle">Pin things you'd like — paste links (Pinterest works great) or add photos, several at once.</p>
+      <PageIntro eyebrow="Future plans" title="Wishlist" description="Pin things you'd like — paste links or add photos, several at once." />
 
       <div className="play-tabs">
         <button className={'play-tab' + (tab === 'theirs' ? ' active' : '')} onClick={() => setTab('theirs')}>

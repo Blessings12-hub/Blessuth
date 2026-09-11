@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 import { PlayIcon, PauseIcon } from '../components/Icons'
+import PageIntro from '../components/PageIntro'
 
 const MOODS = ['Happy', 'In love', 'Sleepy', 'Sad', 'Frustrated', 'Celebrating', 'Content', 'Not feeling well', 'Anxious', 'Missing you']
 
@@ -199,8 +200,7 @@ export default function Music() {
 
   return (
     <div className="screen with-nav">
-      <h2>Mood & Music</h2>
-      <p className="subtitle">Search real songs, play a preview, and build a playlist together.</p>
+      <PageIntro eyebrow="Set the tone" title="Mood & Music" description="Search real songs, play a preview, and build a playlist together." />
 
       <audio ref={audioRef} onEnded={() => setPlayingId(null)} />
 

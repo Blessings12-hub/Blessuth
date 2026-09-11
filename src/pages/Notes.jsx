@@ -3,6 +3,7 @@ import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder'
 import VoiceNotePlayer from '../components/VoiceNotePlayer'
+import PageIntro from '../components/PageIntro'
 
 const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥']
 
@@ -207,8 +208,7 @@ export default function Notes() {
 
   return (
     <div className="screen with-nav">
-      <h2>Love Notes</h2>
-      <p className="subtitle">Little messages for each other, anytime. Press and hold one to react.</p>
+      <PageIntro eyebrow="Small reminders" title="Love Notes" description="Little messages for each other, anytime. Press and hold one to react." />
 
       <form onSubmit={send} className="note-form">
         <input
