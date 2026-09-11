@@ -1,5 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 
+:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
+
+button:disabled,
+input:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
+
 :root {
   --ink: #232946;
   --bg: #eeeef5;
@@ -42,6 +53,41 @@ body {
   color: var(--ink);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-tap-highlight-color: transparent;
+}
+
+.error-boundary {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.error-boundary-card {
+  width: min(100%, 440px);
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--surface);
+  text-align: center;
+  box-shadow: 0 18px 50px rgba(35, 41, 70, 0.12);
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--sunset);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.primary-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 20px;
+  background: linear-gradient(135deg, var(--sunset), var(--gold));
+  color: #fff;
+  font-weight: 700;
 }
 
 h1,

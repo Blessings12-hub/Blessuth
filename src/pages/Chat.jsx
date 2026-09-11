@@ -132,7 +132,7 @@ export default function Chat() {
     if (!couple) return
     const { data } = await supabase
       .from('messages')
-      .select('*')
+      .select('id, couple_id, sender_id, sender_name, text, image_path, voice_path, created_at, updated_at, read_at')
       .eq('couple_id', couple.id)
       .order('created_at', { ascending: false })
       .limit(PAGE_SIZE)
@@ -147,7 +147,7 @@ export default function Chat() {
     const oldest = messages[0].created_at
     const { data } = await supabase
       .from('messages')
-      .select('*')
+      .select('id, couple_id, sender_id, sender_name, text, image_path, voice_path, created_at, updated_at, read_at')
       .eq('couple_id', couple.id)
       .lt('created_at', oldest)
       .order('created_at', { ascending: false })
@@ -246,7 +246,9 @@ export default function Chat() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `couple_id=eq.${couple.id}` },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new])
+          setMessages((prev) => prev.some((message) => message.id === payload.new.id)
+            ? prev
+            : [...prev, payload.new])
           if (payload.new.sender_id !== user.id) markRead()
         }
       )

@@ -12,6 +12,7 @@ export default function Photos() {
   const [uploading, setUploading] = useState(false)
   const [caption, setCaption] = useState('')
   const [uploadError, setUploadError] = useState('')
+  const [loading, setLoading] = useState(true)
 
   // window.confirm()/window.alert() are unreliable in iOS home-screen PWAs
   // (a known iOS WebKit limitation) — using the same inline patterns as the
@@ -24,11 +25,17 @@ export default function Photos() {
   const touchStartX = useRef(null)
 
   async function loadPhotos() {
-    const { data } = await supabase
+    setLoading(true)
+    const { data, error } = await supabase
       .from('photos')
       .select('*')
       .eq('couple_id', couple.id)
       .order('created_at', { ascending: false })
+    if (error) {
+      setUploadError('Your memories could not be loaded. Please try again.')
+      setLoading(false)
+      return
+    }
     const rows = data || []
 
     // The `photos` storage bucket is private (see supabase.sql) — a plain
@@ -43,6 +50,7 @@ export default function Photos() {
       })
     )
     setPhotos(withUrls)
+    setLoading(false)
   }
 
   useEffect(() => {
@@ -63,6 +71,16 @@ export default function Photos() {
   async function handleUpload(e) {
     const file = e.target.files[0]
     if (!file || !couple) return
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please choose an image file.')
+      e.target.value = ''
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('Images must be smaller than 10 MB.')
+      e.target.value = ''
+      return
+    }
     setUploading(true)
     setUploadError('')
     try {
@@ -93,9 +111,15 @@ export default function Photos() {
 
   async function confirmDelete(photo) {
     setDeleteBusy(true)
-    await supabase.storage.from('photos').remove([photo.path])
-    await supabase.from('photos').delete().eq('id', photo.id)
+    setUploadError('')
+    const { error: storageError } = await supabase.storage.from('photos').remove([photo.path])
+    const { error: rowError } = await supabase.from('photos').delete().eq('id', photo.id)
     setDeleteBusy(false)
+    if (storageError || rowError) {
+      setUploadError('This memory could not be deleted. Please try again.')
+      return
+    }
+    setPhotos((current) => current.filter((item) => item.id !== photo.id))
     setConfirmDeleteId(null)
   }
 
@@ -103,6 +127,17 @@ export default function Photos() {
     const idx = photos.findIndex((p) => p.id === photo.id)
     if (idx !== -1) setLightboxIndex(idx)
   }
+
+  useEffect(() => {
+    if (lightboxIndex === null) return undefined
+    function onKeyDown(event) {
+      if (event.key === 'Escape') setLightboxIndex(null)
+      if (event.key === 'ArrowRight') showNext()
+      if (event.key === 'ArrowLeft') showPrev()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [lightboxIndex])
 
   function showNext() {
     setLightboxIndex((i) => (i === null ? i : (i + 1) % photos.length))
@@ -151,7 +186,8 @@ export default function Photos() {
       {uploadError && <p className="error">{uploadError}</p>}
 
       <div className="photo-grid">
-        {photos.map((p) => (
+        {loading && <p className="empty-state" aria-live="polite">Loading your memories…</p>}
+        {!loading && photos.map((p) => (
           <div key={p.id} className="photo-card">
             <img
               src={p.displayUrl || p.url}
