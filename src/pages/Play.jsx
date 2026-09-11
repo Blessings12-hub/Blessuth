@@ -21,6 +21,7 @@ export default function Play() {
           type="button"
           role="tab"
           aria-selected={tab === 'quizzes'}
+          aria-controls="play-panel"
           className={'play-tab' + (tab === 'quizzes' ? ' active' : '')}
           onClick={() => setTab('quizzes')}
         >
@@ -37,7 +38,7 @@ export default function Play() {
         </button>
       </div>
 
-      <section className="play-content" aria-live="polite">
+      <section id="play-panel" className="play-content" aria-live="polite">
         {tab === 'quizzes' ? <Quizzes /> : <GamesHub onGoToQuizzes={() => setTab('quizzes')} />}
       </section>
     </main>
