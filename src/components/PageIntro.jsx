@@ -3,7 +3,7 @@ export default function PageIntro({ eyebrow, title, description, action }) {
     <header className="page-intro">
       <div>
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h2>{title}</h2>
+        <h1>{title}</h1>
         {description && <p className="subtitle">{description}</p>}
       </div>
       {action}

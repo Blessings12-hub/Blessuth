@@ -58,7 +58,7 @@ export default function Nav() {
   }
 
   return (
-    <nav className="bottom-nav">
+    <nav className="bottom-nav" aria-label="Primary navigation">
       {items.map((item) => (
         <NavLink
           key={item.to}
