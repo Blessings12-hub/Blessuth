@@ -241,10 +241,10 @@ export default function Wishlist() {
       <PageIntro eyebrow="Future plans" title="Wishlist" description="Pin things you'd like — paste links or add photos, several at once." />
 
       <div className="play-tabs">
-        <button className={'play-tab' + (tab === 'theirs' ? ' active' : '')} onClick={() => setTab('theirs')}>
+        <button type="button" role="tab" aria-selected={tab === 'theirs'} className={'play-tab' + (tab === 'theirs' ? ' active' : '')} onClick={() => setTab('theirs')}>
           For {partnerName || 'them'}
         </button>
-        <button className={'play-tab' + (tab === 'mine' ? ' active' : '')} onClick={() => setTab('mine')}>
+        <button type="button" role="tab" aria-selected={tab === 'mine'} className={'play-tab' + (tab === 'mine' ? ' active' : '')} onClick={() => setTab('mine')}>
           For you
         </button>
       </div>

@@ -346,7 +346,7 @@ export default function Music() {
           const links = externalLinks(track.title, track.artist)
           return (
             <div key={track.id} className="track-row">
-              <button className="track-play" onClick={() => togglePlay(track)} disabled={!track.previewUrl}>
+              <button type="button" className="track-play" aria-label={playingId === track.id ? `Pause ${track.title}` : `Play preview of ${track.title}`} onClick={() => togglePlay(track)} disabled={!track.previewUrl}>
                 {playingId === track.id ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
               </button>
               {track.artwork && <img src={track.artwork} alt="" className="track-artwork" />}
