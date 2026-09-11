@@ -24,6 +24,7 @@ textarea:disabled {
   --radius: 18px;
   --shadow-sm: 0 6px 18px rgba(35, 41, 70, 0.06);
   --shadow-md: 0 14px 36px rgba(35, 41, 70, 0.1);
+  --content-width: 760px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -103,11 +104,13 @@ h2 {
 }
 
 h1 {
-  font-size: 1.7rem;
+  font-size: clamp(1.65rem, 5vw, 2.1rem);
+  line-height: 1.08;
 }
 
 h2 {
-  font-size: 1.4rem;
+  font-size: clamp(1.3rem, 4vw, 1.55rem);
+  line-height: 1.15;
 }
 
 .subtitle {
@@ -120,6 +123,19 @@ button {
   font-family: inherit;
   color: inherit;
   cursor: pointer;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled):active,
+.primary-btn:not(:disabled):active {
+  transform: translateY(1px);
 }
 
 input,
@@ -378,7 +394,7 @@ a {
 
 /* ---- App screens ---- */
 .screen {
-  max-width: 720px;
+  max-width: var(--content-width);
   margin: 0 auto;
   padding: 28px 20px;
   width: 100%;
@@ -399,6 +415,7 @@ a {
   margin-bottom: 20px;
 }
 
+.page-intro h1,
 .page-intro h2 {
   margin-bottom: 6px;
 }
@@ -785,6 +802,12 @@ a {
 
 /* Shrink further on narrow phones so all 7 tabs stay on one row, in view, with no scrolling */
 @media (max-width: 400px) {
+  .bottom-nav {
+    bottom: 8px;
+    width: calc(100% - 12px);
+    border-radius: 18px;
+  }
+
   .nav-item {
     font-size: 0.58rem;
   }
