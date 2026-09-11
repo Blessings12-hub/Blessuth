@@ -233,11 +233,33 @@ export default function Canvas() {
   }
 
   async function undoLast() {
-    const strokes = strokesRef.current
-    if (strokes.length === 0) return
+    if (undoBusy || currentPageNumber === undefined) return
     setUndoBusy(true)
-    const last = strokes[strokes.length - 1]
-    await supabase.from('board_strokes').delete().eq('id', last.id)
+
+    // Re-read the page before undoing so a stroke drawn in another tab, or a
+    // stroke whose insert just finished, cannot leave the local ref stale.
+    const { data: latestStrokes, error: readError } = await supabase
+      .from('board_strokes')
+      .select('*')
+      .eq('couple_id', couple.id)
+      .eq('page_number', currentPageNumber)
+      .order('created_at', { ascending: true })
+
+    if (readError || !latestStrokes?.length) {
+      setUndoBusy(false)
+      return
+    }
+
+    const last = latestStrokes[latestStrokes.length - 1]
+    const { error: deleteError } = await supabase.from('board_strokes').delete().eq('id', last.id)
+
+    if (!deleteError) {
+      const remaining = latestStrokes.slice(0, -1)
+      strokesRef.current = remaining
+      setHasStrokes(remaining.length > 0)
+      renderAll(remaining)
+    }
+
     setUndoBusy(false)
   }
 
