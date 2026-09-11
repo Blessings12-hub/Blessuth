@@ -1,0 +1,1 @@
+import{j as s}from"./index-CHeg_7-Y.js";function l({eyebrow:e,title:a,description:r,action:n}){return s.jsxs("header",{className:"page-intro",children:[s.jsxs("div",{children:[e&&s.jsx("p",{className:"eyebrow",children:e}),s.jsx("h1",{children:a}),r&&s.jsx("p",{className:"subtitle",children:r})]}),n]})}export{l as P};
