@@ -3,6 +3,8 @@ import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 import { PlayIcon, PauseIcon } from '../components/Icons'
 import PageIntro from '../components/PageIntro'
+import { connectSpotify, disconnectSpotify, getValidSpotifyToken, isSpotifyConfigured, isSpotifyConnected } from '../spotifyAuth'
+import { createSpotifyPlayer, spotifyPause, spotifyPlayTrack, spotifyResume, spotifySearch } from '../spotifyPlayer'
 
 const MOODS = ['Happy', 'In love', 'Sleepy', 'Sad', 'Frustrated', 'Celebrating', 'Content', 'Not feeling well', 'Anxious', 'Missing you']
 
@@ -68,7 +70,14 @@ export default function Music() {
 
   // 30s-preview playback
   const audioRef = useRef(null)
+  const spotifyRef = useRef(null)
   const [playingId, setPlayingId] = useState(null)
+  const [spotifyReady, setSpotifyReady] = useState(false)
+  const [spotifyConnected, setSpotifyConnected] = useState(false)
+  const [spotifyDeviceId, setSpotifyDeviceId] = useState(null)
+  const [spotifyTrackId, setSpotifyTrackId] = useState(null)
+  const [providerError, setProviderError] = useState('')
+  const [youtubeTrack, setYoutubeTrack] = useState(null)
 
   // Mood + now playing
   const [mine, setMine] = useState(null)
@@ -99,46 +108,70 @@ export default function Music() {
   }
 
   useEffect(() => {
-    if (!couple) return
-    loadMoods()
-    loadPlaylist()
-    const moodsChannel = supabase
-      .channel(`moods-${couple.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'moods', filter: `couple_id=eq.${couple.id}` },
-        loadMoods
-      )
-      .subscribe()
-    const playlistChannel = supabase
-      .channel(`playlist-${couple.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'playlist_tracks', filter: `couple_id=eq.${couple.id}` },
-        loadPlaylist
-      )
-      .subscribe()
+    setSpotifyConnected(isSpotifyConnected())
     return () => {
-      supabase.removeChannel(moodsChannel)
-      supabase.removeChannel(playlistChannel)
+      spotifyRef.current?.disconnect()
+      spotifyRef.current = null
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [couple?.id, partnerUid])
+  }, [])
 
-  function togglePlay(track) {
-    const audio = audioRef.current
-    if (!track.previewUrl) return
-    if (playingId === track.id) {
-      audio.pause()
-      setPlayingId(null)
+  async function startSpotify() {
+    setProviderError('')
+    if (!isSpotifyConfigured()) {
+      setProviderError('Spotify playback needs VITE_SPOTIFY_CLIENT_ID configured for this app.')
       return
     }
-    audio.src = track.previewUrl
-    audio.play()
-    setPlayingId(track.id)
+    if (!spotifyConnected) {
+      await connectSpotify()
+      return
+    }
+    if (spotifyRef.current) return
+    try {
+      spotifyRef.current = await createSpotifyPlayer(getValidSpotifyToken, {
+        onReady: (deviceId) => { setSpotifyDeviceId(deviceId); setSpotifyReady(true) },
+        onNotReady: () => setSpotifyReady(false),
+        onStateChanged: (state) => setSpotifyTrackId(state?.track_window?.current_track?.id || null),
+        onError: setProviderError,
+      })
+    } catch (error) {
+      setProviderError(error.message)
+    }
+  }
+
+  async function playSpotifyTrack(track) {
+    setProviderError('')
+    if (!spotifyConnected) {
+      setProviderError('Connect Spotify first to play full songs inline.')
+      return
+    }
+    if (!spotifyRef.current || !spotifyDeviceId) await startSpotify()
+    const token = await getValidSpotifyToken()
+    if (!token || !spotifyDeviceId || !track.uri) {
+      setProviderError('Spotify player is still starting. Try again in a moment.')
+      return
+    }
+    if (spotifyTrackId === track.id) await spotifyResume(token, spotifyDeviceId)
+    else await spotifyPlayTrack(token, spotifyDeviceId, track.uri)
+    setSpotifyTrackId(track.id)
+  }
+
+  async function playFullSong(track) {
+    const token = await getValidSpotifyToken()
+    if (!token) {
+      setProviderError('Connect Spotify first to play full songs inline.')
+      return
+    }
+    const matches = await spotifySearch(token, `${track.title} ${track.artist}`)
+    const match = matches[0]
+    if (!match) {
+      setProviderError('That song was not found on Spotify. Try YouTube instead.')
+      return
+    }
+    await playSpotifyTrack(match)
   }
 
   async function runSearch(term) {
+
     const q = term ?? query
     if (!q.trim()) return
     setSearching(true)
@@ -178,6 +211,7 @@ export default function Music() {
   }
 
   async function addToPlaylist(track) {
+    if (playlist.some((item) => item.track_id === track.id)) return
     await supabase.from('playlist_tracks').insert({
       couple_id: couple.id,
       track_id: track.id,
@@ -200,7 +234,22 @@ export default function Music() {
 
   return (
     <div className="screen with-nav">
-      <PageIntro eyebrow="Set the tone" title="Mood & Music" description="Search real songs, play a preview, and build a playlist together." />
+      <PageIntro eyebrow="Set the tone" title="Mood & Music" description="Search songs, preview them here, and keep a shared soundtrack together." />
+
+      <section className="music-provider-panel" aria-label="Full song playback">
+        <div>
+          <p className="eyebrow">Full-song playback</p>
+          <h2>Choose how to listen</h2>
+          <p className="subtitle">Spotify plays inline for Premium listeners. YouTube opens the official search in a new tab.</p>
+        </div>
+        <div className="music-provider-actions">
+          <button type="button" className="primary-btn" onClick={startSpotify}>
+            {spotifyConnected ? (spotifyReady ? 'Spotify ready' : 'Start Spotify') : 'Connect Spotify'}
+          </button>
+          {spotifyConnected && <button type="button" className="secondary-btn" onClick={() => { disconnectSpotify(); spotifyRef.current?.disconnect(); setSpotifyConnected(false); setSpotifyReady(false) }}>Disconnect</button>}
+        </div>
+      </section>
+      {providerError && <p className="error" role="alert">{providerError}</p>}
 
       <audio ref={audioRef} onEnded={() => setPlayingId(null)} />
 
@@ -321,6 +370,12 @@ export default function Music() {
                 </div>
               </div>
               <div className="track-actions">
+                <button className="link-btn small" onClick={() => playFullSong(track)}>
+                  Spotify full song
+                </button>
+                <a className="link-btn small" href={links.youtube} target="_blank" rel="noreferrer">
+                  YouTube full song
+                </a>
                 <button className="link-btn small" onClick={() => setNowPlaying(track)}>
                   Set as playing
                 </button>
