@@ -53,7 +53,7 @@ export function AuthProvider({ children }) {
     async function load() {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, display_name, pair_code, couple_id, timezone, birthday, avatar_url, created_at')
+        .select('id, display_name, pair_code, couple_id, timezone, birthday, avatar_url, location_sharing_enabled, created_at')
         .eq('id', user.id)
         .single()
       if (error && error.code !== 'PGRST116') console.error('[v0] profile load failed', error)
