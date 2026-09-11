@@ -33,8 +33,16 @@ export default function Settings() {
       return
     }
     setNameSaving(true)
-    await supabase.from('profiles').update({ display_name: value }).eq('id', user.id)
+    setAvatarError('')
+    const { error: saveError } = await supabase
+      .from('profiles')
+      .update({ display_name: value })
+      .eq('id', user.id)
     setNameSaving(false)
+    if (saveError) {
+      setAvatarError('Your name could not be saved. Please try again.')
+      return
+    }
     setEditingName(false)
   }
 

@@ -51,7 +51,12 @@ export function AuthProvider({ children }) {
     if (!user) return
     let channel
     async function load() {
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, display_name, pair_code, couple_id, timezone, birthday, avatar_url, created_at')
+        .eq('id', user.id)
+        .single()
+      if (error && error.code !== 'PGRST116') console.error('[v0] profile load failed', error)
       setProfile(data || null)
       setLoading(false)
     }
@@ -141,17 +146,19 @@ export function AuthProvider({ children }) {
   }, [partnerUid])
 
   async function signup(email, password, displayName) {
-    const { data, error } = await supabase.auth.signUp({ email, password })
-    if (error) throw error
-    const uid = data.user.id
-    const pairCode = randomPairCode()
-    const { error: profileError } = await supabase.from('profiles').insert({
-      id: uid,
-      email,
-      display_name: displayName || email.split('@')[0],
-      pair_code: pairCode,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: { data: { display_name: displayName?.trim() || email.split('@')[0] } },
     })
+    if (error) throw error
+    if (!data.user) throw new Error('We could not create your account. Please try again.')
+    const { error: profileError } = await supabase.from('profiles').upsert({
+      id: data.user.id,
+      display_name: displayName?.trim() || email.split('@')[0],
+      pair_code: randomPairCode(),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }, { onConflict: 'id' })
     if (profileError) throw profileError
     return data.user
   }

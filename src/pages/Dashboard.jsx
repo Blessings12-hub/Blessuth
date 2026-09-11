@@ -72,6 +72,7 @@ export default function Dashboard() {
   const [birthdayInput, setBirthdayInput] = useState(profile?.birthday || '')
   const [now, setNow] = useState(new Date())
   const [pingSent, setPingSent] = useState(false)
+  const [actionError, setActionError] = useState('')
 
   const days = daysUntil(couple?.next_visit_date)
   const togetherDays = daysSince(couple?.together_since)
@@ -97,32 +98,40 @@ export default function Dashboard() {
   async function saveDate(e) {
     e.preventDefault()
     if (!couple) return
-    await supabase.from('couples').update({ next_visit_date: dateInput || null }).eq('id', couple.id)
+    setActionError('')
+    const { error } = await supabase.from('couples').update({ next_visit_date: dateInput || null }).eq('id', couple.id)
+    if (error) { setActionError('Your visit date could not be saved.'); return }
     setEditingDate(false)
   }
 
   async function saveSince(e) {
     e.preventDefault()
     if (!couple) return
-    await supabase.from('couples').update({ together_since: sinceInput || null }).eq('id', couple.id)
+    setActionError('')
+    const { error } = await supabase.from('couples').update({ together_since: sinceInput || null }).eq('id', couple.id)
+    if (error) { setActionError('Your start date could not be saved.'); return }
     setEditingSince(false)
   }
 
   async function saveBirthday(e) {
     e.preventDefault()
     if (!user) return
-    await supabase.from('profiles').update({ birthday: birthdayInput || null }).eq('id', user.id)
+    setActionError('')
+    const { error } = await supabase.from('profiles').update({ birthday: birthdayInput || null }).eq('id', user.id)
+    if (error) { setActionError('Your birthday could not be saved.'); return }
     setEditingBirthday(false)
   }
 
   async function sendPing() {
     if (!couple) return
-    await supabase.from('notes').insert({
+    setActionError('')
+    const { error } = await supabase.from('notes').insert({
       couple_id: couple.id,
       text: 'Thinking of you right now',
       from_name: profile?.display_name || 'Me',
       from_uid: user.id,
     })
+    if (error) { setActionError('Your note could not be sent.'); return }
     setPingSent(true)
     setTimeout(() => setPingSent(false), 2500)
   }
@@ -199,6 +208,8 @@ export default function Dashboard() {
           🎉 Happy anniversary — {yearsCount} year{yearsCount === 1 ? '' : 's'} together!
         </div>
       )}
+
+      {actionError && <p className="error" role="alert">{actionError}</p>}
 
       <DailyQuestion />
 

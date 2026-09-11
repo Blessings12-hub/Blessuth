@@ -1,21 +1,24 @@
+import { lazy, Suspense } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Nav from './components/Nav'
 import InAppAlerts from './components/InAppAlerts'
 import WelcomeSurprise from './components/WelcomeSurprise'
-import Login from './pages/Login'
-import Signup from './pages/Signup'
-import Pair from './pages/Pair'
-import Dashboard from './pages/Dashboard'
-import Canvas from './pages/Canvas'
-import Photos from './pages/Photos'
-import Play from './pages/Play'
-import Music from './pages/Music'
-import Notes from './pages/Notes'
-import Settings from './pages/Settings'
-import Chat from './pages/Chat'
-import Wishlist from './pages/Wishlist'
-import BibleStudy from './pages/BibleStudy'
+import ErrorBoundary from './components/ErrorBoundary'
+
+const Login = lazy(() => import('./pages/Login'))
+const Signup = lazy(() => import('./pages/Signup'))
+const Pair = lazy(() => import('./pages/Pair'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Canvas = lazy(() => import('./pages/Canvas'))
+const Photos = lazy(() => import('./pages/Photos'))
+const Play = lazy(() => import('./pages/Play'))
+const Music = lazy(() => import('./pages/Music'))
+const Notes = lazy(() => import('./pages/Notes'))
+const Settings = lazy(() => import('./pages/Settings'))
+const Chat = lazy(() => import('./pages/Chat'))
+const Wishlist = lazy(() => import('./pages/Wishlist'))
+const BibleStudy = lazy(() => import('./pages/BibleStudy'))
 
 function Gate({ children }) {
   const { user, profile, loading } = useAuth()
@@ -36,7 +39,8 @@ function Gate({ children }) {
 function AppRoutes() {
   const { user } = useAuth()
   return (
-    <Routes>
+    <Suspense fallback={<div className="center-screen" role="status">Loading your space…</div>}>
+      <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route
@@ -125,7 +129,8 @@ function AppRoutes() {
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   )
 }
 
