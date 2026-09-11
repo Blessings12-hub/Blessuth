@@ -74,7 +74,14 @@ export default function DistanceWidget() {
 
   async function load() {
     if (!couple) return
-    const { data } = await supabase.from('locations').select('*').eq('couple_id', couple.id)
+    const { data, error: loadError } = await supabase
+      .from('locations')
+      .select('user_id, lat, lng, label, updated_at')
+      .eq('couple_id', couple.id)
+    if (loadError) {
+      setError('Location sharing is temporarily unavailable.')
+      return
+    }
     setMine(data?.find((r) => r.user_id === user.id) || null)
     setTheirs(data?.find((r) => r.user_id === partnerUid) || null)
   }
@@ -160,8 +167,11 @@ export default function DistanceWidget() {
       // Turning off also clears your stored location — otherwise "off"
       // would be cosmetic only, and your last known spot would keep
       // silently showing to your partner.
-      await supabase.from('profiles').update({ location_sharing_enabled: false }).eq('id', user.id)
-      await supabase.from('locations').delete().eq('couple_id', couple.id).eq('user_id', user.id)
+      const { error: profileError } = await supabase.from('profiles').update({ location_sharing_enabled: false }).eq('id', user.id)
+      const { error: locationError } = await supabase.from('locations').delete().eq('couple_id', couple.id).eq('user_id', user.id)
+      if (profileError || locationError) {
+        setError('Could not turn off location sharing. Please try again.')
+      }
       return
     }
 
@@ -169,7 +179,7 @@ export default function DistanceWidget() {
     try {
       const pos = await getPosition()
       lastWrite.current = { coords: { lat: pos.coords.latitude, lng: pos.coords.longitude }, at: Date.now() }
-      await supabase.from('locations').upsert({
+      const { error: locationError } = await supabase.from('locations').upsert({
         couple_id: couple.id,
         user_id: user.id,
         lat: pos.coords.latitude,
@@ -177,7 +187,8 @@ export default function DistanceWidget() {
         label: profile?.display_name || 'Me',
         updated_at: new Date().toISOString(),
       })
-      await supabase.from('profiles').update({ location_sharing_enabled: true }).eq('id', user.id)
+      const { error: profileError } = await supabase.from('profiles').update({ location_sharing_enabled: true }).eq('id', user.id)
+      if (locationError || profileError) throw new Error('Could not save your location sharing setting.')
     } catch (err) {
       setError(
         err.code === 1

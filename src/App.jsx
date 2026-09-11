@@ -138,12 +138,14 @@ export default function App() {
   return (
     <AuthProvider>
       <HashRouter>
-        <div className="app-shell">
-          <InAppAlerts />
-          <WelcomeSurprise />
-          <AppRoutes />
-          <Nav />
-        </div>
+        <ErrorBoundary>
+          <div className="app-shell">
+            <InAppAlerts />
+            <WelcomeSurprise />
+            <AppRoutes />
+            <Nav />
+          </div>
+        </ErrorBoundary>
       </HashRouter>
     </AuthProvider>
   )
