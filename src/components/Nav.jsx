@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
-import { HomeIcon, CanvasIcon, QuizIcon, HeadphonesIcon, MailIcon, MessageIcon, GiftIcon } from './Icons'
+import { HomeIcon, CanvasIcon, QuizIcon, HeadphonesIcon, MailIcon, MessageIcon, GiftIcon, MapPinIcon } from './Icons'
 
 const items = [
   { to: '/', label: 'Home', Icon: HomeIcon },
@@ -10,6 +10,7 @@ const items = [
   { to: '/chat', label: 'Chat', Icon: MessageIcon },
   { to: '/play', label: 'Play', Icon: QuizIcon },
   { to: '/wishlist', label: 'Wishlist', Icon: GiftIcon },
+  { to: '/location', label: 'Location', Icon: MapPinIcon },
   { to: '/music', label: 'Mood', Icon: HeadphonesIcon },
   { to: '/notes', label: 'Notes', Icon: MailIcon },
 ]
