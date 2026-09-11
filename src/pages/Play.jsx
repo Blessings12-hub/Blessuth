@@ -6,20 +6,40 @@ export default function Play() {
   const [tab, setTab] = useState('quizzes')
 
   return (
-    <div className="screen with-nav">
-      <div className="play-tabs">
+    <main className="screen with-nav play-screen">
+      <header className="play-header">
+        <div>
+          <p className="eyebrow">Together time</p>
+          <h1>Play together</h1>
+          <p className="subtitle">A little friendly competition, a lot of shared moments.</p>
+        </div>
+        <div className="play-header-mark" aria-hidden="true">+</div>
+      </header>
+
+      <div className="play-tabs" role="tablist" aria-label="Play activities">
         <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'quizzes'}
           className={'play-tab' + (tab === 'quizzes' ? ' active' : '')}
           onClick={() => setTab('quizzes')}
         >
-          Quizzes
+          <span>Quizzes</span><small>Know each other</small>
         </button>
-        <button className={'play-tab' + (tab === 'games' ? ' active' : '')} onClick={() => setTab('games')}>
-          Games
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'games'}
+          className={'play-tab' + (tab === 'games' ? ' active' : '')}
+          onClick={() => setTab('games')}
+        >
+          <span>Games</span><small>Make a moment</small>
         </button>
       </div>
 
-      {tab === 'quizzes' ? <Quizzes /> : <GamesHub onGoToQuizzes={() => setTab('quizzes')} />}
-    </div>
+      <section className="play-content" aria-live="polite">
+        {tab === 'quizzes' ? <Quizzes /> : <GamesHub onGoToQuizzes={() => setTab('quizzes')} />}
+      </section>
+    </main>
   )
 }

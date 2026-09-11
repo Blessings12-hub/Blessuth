@@ -742,6 +742,148 @@ a {
   }
 }
 
+/* Device-safe spacing: keep content below notches, status bars, and browser chrome. */
+.screen {
+  padding-top: calc(24px + env(safe-area-inset-top));
+}
+
+.auth-page,
+.loading-screen,
+.center-screen {
+  padding-top: env(safe-area-inset-top);
+}
+
+.auth-hero {
+  padding-top: calc(56px + env(safe-area-inset-top));
+}
+
+/* ---- Play hub ---- */
+.play-screen {
+  max-width: 760px;
+}
+
+.play-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.play-header .subtitle {
+  max-width: 440px;
+  margin-bottom: 0;
+}
+
+.play-header-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--sunset), var(--gold));
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 400;
+  line-height: 1;
+  transform: rotate(8deg);
+}
+
+.play-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 6px;
+  margin-bottom: 22px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface) 75%, var(--bg));
+}
+
+.play-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.play-tab span {
+  font-family: 'Fraunces', serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.play-tab small {
+  font-size: 0.72rem;
+}
+
+.play-tab.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 5px 18px rgba(35, 41, 70, 0.1);
+}
+
+.play-tab:hover {
+  transform: translateY(-1px);
+}
+
+.play-content {
+  min-width: 0;
+}
+
+.distance-widget {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 26px rgba(35, 41, 70, 0.08);
+}
+
+.toggle-row {
+  min-height: 44px;
+}
+
+@media (min-width: 700px) {
+  .screen {
+    padding-left: 28px;
+    padding-right: 28px;
+  }
+
+  .games-grid,
+  .quiz-hub-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .play-header-mark {
+    width: 54px;
+    height: 54px;
+  }
+}
+
+@media (max-width: 430px) {
+  .play-header {
+    margin-bottom: 16px;
+  }
+
+  .play-header h1 {
+    font-size: 1.55rem;
+  }
+
+  .play-header-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 13px;
+    font-size: 1.5rem;
+  }
+}
+
 .nav-badge {
   position: absolute;
   top: -6px;
