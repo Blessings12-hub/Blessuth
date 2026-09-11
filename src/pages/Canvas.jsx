@@ -206,14 +206,15 @@ export default function Canvas() {
 
     // A plain insert — no read-modify-write, so two strokes landing at the
     // same moment can never overwrite each other.
-    await supabase.from('board_strokes').insert({
+    const { data: savedStroke } = await supabase.from('board_strokes').insert({
       couple_id: couple.id,
       color,
       width,
       points,
       by: user.id,
       page_number: currentPageNumber,
-    })
+    }).select().single()
+    if (savedStroke) strokesRef.current = [...strokesRef.current, savedStroke]
 
     // Debounced "finished drawing" notification — every new stroke pushes
     // this back out, so the partner is only notified once 10 quiet seconds

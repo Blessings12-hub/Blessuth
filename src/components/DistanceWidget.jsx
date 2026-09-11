@@ -58,7 +58,7 @@ function getPosition() {
           maximumAge: 60000,
         })
       },
-      { enableHighAccuracy: true, timeout: 12000 }
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
     )
   })
 }
@@ -156,7 +156,7 @@ export default function DistanceWidget() {
         // Silently ignore — permission may have been revoked after
         // initially granting; toggling off/on again surfaces a clear error.
       },
-      { enableHighAccuracy: false, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
     )
     return () => navigator.geolocation.clearWatch(watchId)
   }, [couple?.id, user?.id, profile?.display_name, profile?.location_sharing_enabled])
