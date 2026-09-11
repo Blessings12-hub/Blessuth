@@ -174,10 +174,22 @@ export default function BibleStudy() {
       <PageIntro eyebrow="Grow together" title="Bible Study" description="Share verses together, with a few prayer points to get you started." />
 
       <div className="play-tabs">
-        <button className={'play-tab' + (tab === 'verses' ? ' active' : '')} onClick={() => setTab('verses')}>
+        <button
+          type="button"
+          className={'play-tab' + (tab === 'verses' ? ' active' : '')}
+          onClick={() => setTab('verses')}
+          aria-selected={tab === 'verses'}
+          role="tab"
+        >
           Verses
         </button>
-        <button className={'play-tab' + (tab === 'reminders' ? ' active' : '')} onClick={() => setTab('reminders')}>
+        <button
+          type="button"
+          className={'play-tab' + (tab === 'reminders' ? ' active' : '')}
+          onClick={() => setTab('reminders')}
+          aria-selected={tab === 'reminders'}
+          role="tab"
+        >
           Reminders
         </button>
       </div>
