@@ -41,6 +41,8 @@ export default function Login() {
             <MailIcon size={18} className="auth-input-icon" />
             <input
               type="email"
+              id="login-email"
+              aria-label="Email address"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
