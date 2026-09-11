@@ -2501,7 +2501,42 @@ a {
   align-items: flex-end;
 }
 
-/* ---- Notes ---- */
+  .music-provider-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px 0 22px;
+  padding: 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--sunset) 16%, var(--surface)), var(--surface));
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  }
+
+  .music-provider-panel h2 { margin-bottom: 4px; }
+  .music-provider-panel .subtitle { margin-bottom: 0; max-width: 520px; }
+  .music-provider-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+  .secondary-btn {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 11px 16px;
+  background: var(--surface);
+  font-weight: 600;
+  }
+  .track-actions .link-btn { text-align: right; }
+
+  @media (max-width: 640px) {
+    .music-provider-panel { align-items: flex-start; flex-direction: column; }
+    .music-provider-actions { justify-content: flex-start; width: 100%; }
+    .music-provider-actions button { flex: 1; }
+    .track-row { align-items: flex-start; flex-wrap: wrap; }
+    .track-info { min-width: calc(100% - 54px); }
+    .track-actions { width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; padding-left: 44px; }
+    .track-actions .link-btn { text-align: left; }
+  }
+
+  /* ---- Notes ---- */
+
 .note-form {
   display: flex;
   align-items: center;
