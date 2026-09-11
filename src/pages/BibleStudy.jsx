@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
 import { resizeImage } from '../imageResize'
+import PageIntro from '../components/PageIntro'
 
 const SIGNED_URL_TTL = 60 * 60
 
@@ -170,8 +171,7 @@ export default function BibleStudy() {
 
   return (
     <div className="screen with-nav">
-      <h2>Bible Study</h2>
-      <p className="subtitle">Share verses together, with a few prayer points to get you started.</p>
+      <PageIntro eyebrow="Grow together" title="Bible Study" description="Share verses together, with a few prayer points to get you started." />
 
       <div className="play-tabs">
         <button className={'play-tab' + (tab === 'verses' ? ' active' : '')} onClick={() => setTab('verses')}>

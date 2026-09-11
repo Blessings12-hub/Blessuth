@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabase/config'
 import { useAuth } from '../context/AuthContext'
+import PageIntro from '../components/PageIntro'
 
 // One hour is comfortably longer than anyone will sit on this screen in one
 // sitting, and short enough that a leaked URL stops working reasonably soon.
@@ -162,8 +163,7 @@ export default function Photos() {
 
   return (
     <div className="screen with-nav">
-      <h2>Photo Memories</h2>
-      <p className="subtitle">Your shared album, always in sync.</p>
+      <PageIntro eyebrow="Shared memories" title="Photo Memories" description="Your shared album, always in sync." />
 
       <div className="upload-box">
         <input

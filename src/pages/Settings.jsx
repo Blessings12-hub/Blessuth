@@ -6,6 +6,7 @@ import Logo from '../components/Logo'
 import { alertsMuted, setAlertsMuted } from '../components/InAppAlerts'
 import { pushSupported, getPushSubscriptionState, enablePush, disablePush, sendTestPush } from '../push'
 import { resizeImage } from '../imageResize'
+import PageIntro from '../components/PageIntro'
 
 export default function Settings() {
   const { user, couple, profile, partnerName, logout, unpairCouple } = useAuth()
@@ -193,7 +194,7 @@ export default function Settings() {
         <Logo size={26} withWordmark />
       </div>
 
-      <h2>Settings</h2>
+      <PageIntro eyebrow="Your space" title="Settings" description="Tune notifications, your profile, and the way you stay connected." />
 
       <div className="settings-section avatar-section">
         <button
