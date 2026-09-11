@@ -222,6 +222,7 @@ export default function Notes() {
           type="button"
           className={'chat-attach-btn' + (recording ? ' recording' : '')}
           title={recording ? 'Stop and send' : 'Record a voice note'}
+          aria-label={recording ? 'Stop and send voice note' : 'Record a voice note'}
           onClick={handleMicTap}
           disabled={sending}
         >

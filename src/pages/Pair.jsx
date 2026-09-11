@@ -63,6 +63,9 @@ export default function Pair() {
           <div className="auth-input-group no-icon">
             <input
               type="text"
+              id="partner-code"
+              aria-label="Partner pairing code"
+              inputMode="text"
               placeholder="Enter partner's code"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}

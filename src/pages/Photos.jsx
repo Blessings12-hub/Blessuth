@@ -177,6 +177,7 @@ export default function Photos() {
           <input
             type="file"
             accept="image/*"
+            aria-label="Choose a photo to upload"
             onChange={handleUpload}
             disabled={uploading}
             hidden

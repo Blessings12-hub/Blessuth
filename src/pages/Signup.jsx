@@ -42,6 +42,8 @@ export default function Signup() {
             <UserIcon size={18} className="auth-input-icon" />
             <input
               type="text"
+              id="signup-name"
+              aria-label="Your name"
               placeholder="Your name"
               value={name}
               onChange={(e) => setName(e.target.value)}

@@ -12,7 +12,7 @@ export default function LocationPage() {
           Back
         </button>
         <div className="page-header-title">
-          <MapPinIcon size={22} />
+          <MapPinIcon size={22} aria-hidden="true" />
           <div>
             <p className="eyebrow">Together, wherever you are</p>
             <h1>Share your location</h1>

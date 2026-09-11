@@ -144,13 +144,16 @@ export default function GamesHub({ onGoToQuizzes }) {
             className="game-tile"
             role="button"
             tabIndex={0}
+            aria-label={`Open ${g.title}`}
             onClick={() => openGame(g.key)}
             onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openGame(g.key)}
             style={{ position: 'relative' }}
           >
             <button
               onClick={(e) => handleFavoriteClick(e, g.key)}
-              aria-label={favorites.includes(g.key) ? 'Unpin' : 'Pin to top'}
+              type="button"
+              aria-label={favorites.includes(g.key) ? `Unpin ${g.title}` : `Pin ${g.title} to top`}
+              aria-pressed={favorites.includes(g.key)}
               style={{
                 position: 'absolute',
                 top: 6,

@@ -329,9 +329,11 @@ export default function Canvas() {
       </div>
 
       <div className="canvas-wrap">
-        <canvas
-          ref={canvasRef}
-          width={600}
+<canvas
+  ref={canvasRef}
+  aria-label="Shared drawing canvas"
+  role="img"
+  width={600}
           height={600}
           className="draw-canvas"
           onMouseDown={start}

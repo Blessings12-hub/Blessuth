@@ -177,9 +177,11 @@ export default function Dashboard() {
               )}
             </span>
           </button>
-          <div>
-  <PageIntro eyebrow="Your shared space" title={`Hi ${profile?.display_name || 'there'}`} description={partnerName ? `Connected with ${partnerName}` : 'Waiting to connect…'} />
-          </div>
+          <PageIntro
+            eyebrow="Your shared space"
+            title={`Hi ${profile?.display_name || 'there'}`}
+            description={partnerName ? `Connected with ${partnerName}` : 'Waiting to connect…'}
+          />
         </div>
         <div className="header-actions">
           <Link className="icon-btn" to="/settings" title="Settings">
@@ -203,7 +205,7 @@ export default function Dashboard() {
 
       {anniversaryIn === 0 && (
         <div className="birthday-banner">
-          🎉 Happy anniversary — {yearsCount} year{yearsCount === 1 ? '' : 's'} together!
+          Happy anniversary — {yearsCount} year{yearsCount === 1 ? '' : 's'} together!
         </div>
       )}
 
@@ -229,7 +231,12 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="widget-card" onClick={() => setEditingSince(true)}>
+        <button
+          type="button"
+          className="widget-card"
+          onClick={() => setEditingSince(true)}
+          aria-label="Set or edit the date you got together"
+        >
           <div className="widget-icon"><HeartIcon size={20} /></div>
           {togetherDays !== null ? (
             <>
@@ -246,7 +253,7 @@ export default function Dashboard() {
           ) : (
             <div className="widget-label">Tap to set your start date</div>
           )}
-        </div>
+        </button>
 
         <button className="widget-card ping-card" onClick={sendPing}>
           <div className="widget-icon">{pingSent ? <MailIcon size={20} /> : <MessageIcon size={20} />}</div>
