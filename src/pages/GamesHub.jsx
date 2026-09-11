@@ -9,8 +9,10 @@ import NeverHaveIEver from '../games/NeverHaveIEver'
 import TwentyQuestions from '../games/TwentyQuestions'
 import EmojiCharades from '../games/EmojiCharades'
 import StoryChain from '../games/StoryChain'
+import TriviaBattle from '../games/TriviaBattle'
 
 const GAMES = [
+  { key: 'trivia', title: 'Trivia Battle', desc: 'Bible trivia with instant feedback', icon: '?', Component: TriviaBattle },
   { key: 'word', title: 'Word Game', desc: 'Solve a shared word together, 6 guesses', icon: '🔤', Component: WordGame },
   { key: 'tod', title: 'Truth or Dare', desc: 'Pick one, see what comes up', icon: '🎲', Component: TruthOrDare },
   { key: 'tot', title: 'This or That', desc: 'Rapid-fire picks, compare matches', icon: '⚡', Component: ThisOrThat },
