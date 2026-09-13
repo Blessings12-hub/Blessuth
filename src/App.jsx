@@ -19,7 +19,6 @@ const Settings = lazy(() => import('./pages/Settings'))
 const Chat = lazy(() => import('./pages/Chat'))
 const Wishlist = lazy(() => import('./pages/Wishlist'))
 const BibleStudy = lazy(() => import('./pages/BibleStudy'))
-const LocationPage = lazy(() => import('./pages/LocationPage'))
 
 function Gate({ children }) {
   const { user, profile, loading } = useAuth()
@@ -126,14 +125,6 @@ function AppRoutes() {
         element={
           <Gate>
             <BibleStudy />
-          </Gate>
-        }
-      />
-      <Route
-        path="/location"
-        element={
-          <Gate>
-            <LocationPage />
           </Gate>
         }
       />

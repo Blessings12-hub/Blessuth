@@ -128,13 +128,17 @@ export default function DistanceWidget() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couple?.id, partnerUid])
 
-  // Continuous tracking while sharing is on and the app is open — moved
-  // here from Dashboard.jsx so this widget is fully self-contained. Can't
-  // run in the background (no native permission for that in a PWA), so it
-  // intentionally stops the moment the tab closes rather than pretending to
-  // track continuously.
+  // The web fallback tracks while this screen is open. Native shells can expose
+  // window.NativeLocation.start/stop so a platform background location service
+  // continues while the app is closed; the service writes the same Supabase row.
   useEffect(() => {
-    if (!couple || !profile?.location_sharing_enabled || !navigator.geolocation) return
+    if (!couple || !profile?.location_sharing_enabled) return
+    const nativeLocation = window.NativeLocation
+    if (nativeLocation?.start) {
+      nativeLocation.start({ coupleId: couple.id, userId: user.id, label: profile?.display_name || 'Me' })
+      return () => nativeLocation.stop?.()
+    }
+    if (!navigator.geolocation) return
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude }
@@ -160,6 +164,16 @@ export default function DistanceWidget() {
     )
     return () => navigator.geolocation.clearWatch(watchId)
   }, [couple?.id, user?.id, profile?.display_name, profile?.location_sharing_enabled])
+
+  useEffect(() => {
+    const refresh = () => { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('focus', refresh)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('focus', refresh)
+    }
+  }, [couple?.id])
 
   async function toggleSharing() {
     setError('')

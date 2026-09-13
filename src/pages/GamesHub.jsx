@@ -9,10 +9,8 @@ import NeverHaveIEver from '../games/NeverHaveIEver'
 import TwentyQuestions from '../games/TwentyQuestions'
 import EmojiCharades from '../games/EmojiCharades'
 import StoryChain from '../games/StoryChain'
-import TriviaBattle from '../games/TriviaBattle'
 
 const GAMES = [
-  { key: 'trivia', title: 'Trivia Battle', desc: 'Bible trivia with instant feedback', icon: '?', Component: TriviaBattle },
   { key: 'word', title: 'Word Game', desc: 'Solve a shared word together, 6 guesses', icon: '🔤', Component: WordGame },
   { key: 'tod', title: 'Truth or Dare', desc: 'Pick one, see what comes up', icon: '🎲', Component: TruthOrDare },
   { key: 'tot', title: 'This or That', desc: 'Rapid-fire picks, compare matches', icon: '⚡', Component: ThisOrThat },
@@ -77,15 +75,18 @@ function orderGames(games, favorites, recent) {
   })
 }
 
-export default function GamesHub({ onGoToQuizzes }) {
+export default function GamesHub() {
   const [activeKey, setActiveKey] = useState(null)
   const [favorites, setFavorites] = useState(() => loadJSON(FAVORITES_KEY))
+  const [feedback, setFeedback] = useState('')
   const active = GAMES.find((g) => g.key === activeKey)
   const recent = loadJSON(RECENT_KEY)
   const orderedGames = orderGames(GAMES, favorites, recent)
 
   function openGame(key) {
+    const game = GAMES.find((item) => item.key === key)
     recordPlayed(key)
+    setFeedback(`${game.title} opened — your turn to start.`)
     setActiveKey(key)
   }
 
@@ -102,41 +103,9 @@ export default function GamesHub({ onGoToQuizzes }) {
   return (
     <>
       <p className="subtitle">
-        Bite-sized 2-player games, built right into the app.
-        {favorites.length > 0 ? ' Your favorites are pinned to the top.' : ' Tap the star on any game to pin it to the top.'}
+        Bite-sized 2-player games, built right into the app. Choose a favorite or pick up where you left off.
       </p>
-
-      {/* Trivia Battle isn't a game in its own right — it's the head-to-head
-          scoreboard built from your Quiz answers, so this is a shortcut
-          into the Quizzes tab, deliberately styled apart from the grid of
-          actual games below so it doesn't read as "one of the games." */}
-      <button
-        onClick={onGoToQuizzes}
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          background: 'linear-gradient(135deg, var(--ink), #3a3f6d)',
-          color: 'white',
-          border: 'none',
-          borderRadius: 'var(--radius)',
-          padding: '14px 16px',
-          marginBottom: 16,
-          textAlign: 'left',
-          cursor: 'pointer',
-        }}
-      >
-        <div style={{ fontSize: '1.6rem' }}>🏆</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: '0.95rem' }}>Trivia Battle</div>
-          <div style={{ fontSize: '0.75rem', color: '#d8d9ec' }}>
-            Your head-to-head score, built from your Quizzes — tap to view
-          </div>
-        </div>
-        <div style={{ fontSize: '1.1rem', color: '#d8d9ec' }}>→</div>
-      </button>
-
+      {feedback && <p className="activity-feedback" role="status">{feedback}</p>}
       <div className="games-grid">
         {orderedGames.map((g) => (
           <div

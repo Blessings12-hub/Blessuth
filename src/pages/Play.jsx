@@ -15,7 +15,10 @@ export default function Play() {
         </div>
         <div className="play-header-mark" aria-hidden="true">+</div>
       </header>
-
+      <div className="play-context" role="note">
+        <strong>Make time for each other.</strong>
+        <span>Pick a quiz to learn something new, or open a game for a quick shared turn.</span>
+      </div>
       <div className="play-tabs" role="tablist" aria-label="Play activities">
         <button
           type="button"
@@ -39,7 +42,7 @@ export default function Play() {
       </div>
 
       <section id="play-panel" className="play-content" aria-live="polite">
-        {tab === 'quizzes' ? <Quizzes /> : <GamesHub onGoToQuizzes={() => setTab('quizzes')} />}
+        {tab === 'quizzes' ? <Quizzes /> : <GamesHub />}
       </section>
     </main>
   )
