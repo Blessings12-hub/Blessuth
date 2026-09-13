@@ -1,9 +1,14 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Quizzes from './Quizzes'
 import GamesHub from './GamesHub'
 
 export default function Play() {
-  const [tab, setTab] = useState('quizzes')
+  const [searchParams] = useSearchParams()
+  const requestedTab = searchParams.get('tab')
+  const [tab, setTab] = useState(requestedTab === 'games' ? 'games' : 'quizzes')
+  const requestedQuiz = searchParams.get('quiz')
+  const requestedGame = searchParams.get('game')
 
   return (
     <main className="screen with-nav play-screen">
@@ -42,7 +47,7 @@ export default function Play() {
       </div>
 
       <section id="play-panel" className="play-content" aria-live="polite">
-        {tab === 'quizzes' ? <Quizzes /> : <GamesHub />}
+        {tab === 'quizzes' ? <Quizzes initialQuiz={requestedQuiz} /> : <GamesHub initialGame={requestedGame} />}
       </section>
     </main>
   )

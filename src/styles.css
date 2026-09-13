@@ -3477,6 +3477,65 @@ a {
   opacity: 0.5;
 }
 
+.sticker-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.sticker-picker button {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--bg);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.chat-sticker {
+  font-size: 3rem;
+  line-height: 1;
+  padding: 8px 12px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--surface) 82%, var(--sunset));
+}
+
+.quick-game-card {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--surface);
+  text-align: center;
+}
+
+.quick-scoreboard {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  color: var(--muted);
+}
+
+.quick-scoreboard strong { display: block; color: var(--ink); font-size: 1.4rem; }
+.quick-tap-button {
+  width: 170px;
+  height: 170px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sunset);
+  color: white;
+  font-size: 1.4rem;
+  font-weight: 700;
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--sunset) 30%, transparent);
+}
+.quick-tap-button:active { transform: scale(.96); }
+
 @media (prefers-color-scheme: dark) {
   .chat-bubble.mine {
     background: #2b1e20;

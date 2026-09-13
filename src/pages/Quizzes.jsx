@@ -42,7 +42,7 @@ function quizKey(topicKey, subtopicKey) {
   return `${topicKey}.${subtopicKey}`
 }
 
-export default function Quizzes() {
+export default function Quizzes({ initialQuiz }) {
   const { couple, user, partnerUid, partnerName, profile } = useAuth()
   const [allAnswers, setAllAnswers] = useState([])
   const [activeTopic, setActiveTopic] = useState(null)
@@ -58,6 +58,13 @@ export default function Quizzes() {
     const { data } = await supabase.from('quiz_answers').select('*').eq('couple_id', couple.id)
     setAllAnswers(data || [])
   }
+
+  useEffect(() => {
+    if (initialQuiz && QUIZ_TOPICS[initialQuiz.split('.')[0]]?.subtopics?.[initialQuiz.split('.')[1]]) {
+      openSubtopic(initialQuiz.split('.')[0], initialQuiz.split('.')[1])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuiz])
 
   useEffect(() => {
     if (!couple) return

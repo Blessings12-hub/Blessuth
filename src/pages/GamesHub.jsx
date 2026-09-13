@@ -9,8 +9,10 @@ import NeverHaveIEver from '../games/NeverHaveIEver'
 import TwentyQuestions from '../games/TwentyQuestions'
 import EmojiCharades from '../games/EmojiCharades'
 import StoryChain from '../games/StoryChain'
+import QuickTapDuel from '../games/QuickTapDuel'
 
 const GAMES = [
+  { key: 'quick-tap', title: 'Quick Tap Duel', desc: 'An iMessage-style race to 10 taps', icon: '◉', Component: QuickTapDuel },
   { key: 'word', title: 'Word Game', desc: 'Solve a shared word together, 6 guesses', icon: '🔤', Component: WordGame },
   { key: 'tod', title: 'Truth or Dare', desc: 'Pick one, see what comes up', icon: '🎲', Component: TruthOrDare },
   { key: 'tot', title: 'This or That', desc: 'Rapid-fire picks, compare matches', icon: '⚡', Component: ThisOrThat },
@@ -75,8 +77,8 @@ function orderGames(games, favorites, recent) {
   })
 }
 
-export default function GamesHub() {
-  const [activeKey, setActiveKey] = useState(null)
+export default function GamesHub({ initialGame }) {
+  const [activeKey, setActiveKey] = useState(initialGame || null)
   const [favorites, setFavorites] = useState(() => loadJSON(FAVORITES_KEY))
   const [feedback, setFeedback] = useState('')
   const active = GAMES.find((g) => g.key === activeKey)
