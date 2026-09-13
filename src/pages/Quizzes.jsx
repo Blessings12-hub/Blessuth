@@ -52,6 +52,7 @@ export default function Quizzes() {
   const [selfSelections, setSelfSelections] = useState([])
   const [guessSelections, setGuessSelections] = useState([])
   const [retaking, setRetaking] = useState(false)
+  const [playMessage, setPlayMessage] = useState('')
 
   async function loadAll() {
     if (!couple) return
@@ -173,6 +174,7 @@ export default function Quizzes() {
     setSelfSelections([])
     setGuessSelections([])
     setRetaking(false)
+    setPlayMessage('Your turn first — answer honestly, then guess your partner.')
   }
 
   function retake() {
@@ -181,6 +183,7 @@ export default function Quizzes() {
     setSelfSelections([])
     setGuessSelections([])
     setRetaking(true)
+    setPlayMessage('Fresh round started. Let’s see how well you know each other.')
   }
 
   async function submit(finalAnswers, finalGuesses) {
@@ -194,9 +197,11 @@ export default function Quizzes() {
       updated_at: new Date().toISOString(),
     })
     setRetaking(false)
+    setPlayMessage('Answers saved. Your partner can now play their side of the round.')
   }
 
   function pick(optionIndex) {
+    setPlayMessage(round === 'self' ? 'Locked in — now keep going.' : 'Guess saved — one step closer to your score.')
     const questions = QUIZ_TOPICS[activeTopic].subtopics[activeSubtopic].questions
     const lastStep = step === questions.length - 1
 
@@ -242,9 +247,11 @@ export default function Quizzes() {
     const overallPct = doneCount ? Math.round(syncSum / doneCount) : null
     const battle = computeBattle()
 
-    return (
-      <>
-        <p className="subtitle">
+  return (
+  <>
+  {playMessage && <p className="activity-feedback" role="status">{playMessage}</p>}
+  <p className="subtitle">
+
           Answer for yourself, then guess {partnerName || 'your partner'}'s answer — find out how well you really
           know each other.
         </p>
