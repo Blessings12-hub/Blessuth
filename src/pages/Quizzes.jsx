@@ -47,9 +47,8 @@ export default function Quizzes() {
   const [allAnswers, setAllAnswers] = useState([])
   const [activeTopic, setActiveTopic] = useState(null)
   const [activeSubtopic, setActiveSubtopic] = useState(null)
-  const [round, setRound] = useState('self') // 'self' | 'guess'
+  const [round, setRound] = useState('guess') // Partner-only quiz: every answer is a guess about them
   const [step, setStep] = useState(0)
-  const [selfSelections, setSelfSelections] = useState([])
   const [guessSelections, setGuessSelections] = useState([])
   const [retaking, setRetaking] = useState(false)
   const [playMessage, setPlayMessage] = useState('')
@@ -75,10 +74,8 @@ export default function Quizzes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [couple?.id])
 
-  // A submission only counts as "done" once it has both a self-answer and a
-  // guess for every question — a row saved before this guessing mechanic
-  // existed only has `answers`, so it's treated as not-yet-done rather than
-  // shown as a broken/incomplete result.
+  // A submission only counts as done once every partner-guess is saved. Older
+  // rows without guesses remain incomplete rather than showing a broken result.
   function statusFor(topicKey, subtopicKey) {
     const key = quizKey(topicKey, subtopicKey)
     const qCount = QUIZ_TOPICS[topicKey].subtopics[subtopicKey].questions.length
@@ -169,21 +166,21 @@ export default function Quizzes() {
   function openSubtopic(topicKey, subtopicKey) {
     setActiveTopic(topicKey)
     setActiveSubtopic(subtopicKey)
-    setRound('self')
+    setRound('guess')
     setStep(0)
     setSelfSelections([])
     setGuessSelections([])
     setRetaking(false)
-    setPlayMessage('Your turn first — answer honestly, then guess your partner.')
+    setPlayMessage(`Your turn — choose the answer you think ${partnerName || 'your partner'} would give.`)
   }
 
   function retake() {
-    setRound('self')
+    setRound('guess')
     setStep(0)
     setSelfSelections([])
     setGuessSelections([])
     setRetaking(true)
-    setPlayMessage('Fresh round started. Let’s see how well you know each other.')
+    setPlayMessage(`Fresh round started — guess what ${partnerName || 'your partner'} would choose.`)
   }
 
   async function submit(finalAnswers, finalGuesses) {
@@ -201,31 +198,18 @@ export default function Quizzes() {
   }
 
   function pick(optionIndex) {
-    setPlayMessage(round === 'self' ? 'Locked in — now keep going.' : 'Guess saved — one step closer to your score.')
+    setPlayMessage(`Guess saved — ${partnerName || 'your partner'} would be proud of that instinct.`)
     const questions = QUIZ_TOPICS[activeTopic].subtopics[activeSubtopic].questions
     const lastStep = step === questions.length - 1
-
-    if (round === 'self') {
-      const next = [...selfSelections]
-      next[step] = optionIndex
-      setSelfSelections(next)
-      setTimeout(() => {
-        if (lastStep) {
-          setRound('guess')
-          setStep(0)
-        } else {
-          setStep(step + 1)
-        }
-      }, 220)
+    const next = [...guessSelections]
+    next[step] = optionIndex
+    setGuessSelections(next)
+    if (lastStep) {
+      // Keep the existing answer shape so completed rounds and older data stay compatible.
+      // The only answer the player supplies in this flow is their guess about their partner.
+      setTimeout(() => submit(next, next), 220)
     } else {
-      const next = [...guessSelections]
-      next[step] = optionIndex
-      setGuessSelections(next)
-      if (lastStep) {
-        setTimeout(() => submit(selfSelections, next), 220)
-      } else {
-        setTimeout(() => setStep(step + 1), 220)
-      }
+      setTimeout(() => setStep(step + 1), 220)
     }
   }
 
@@ -252,8 +236,7 @@ export default function Quizzes() {
   {playMessage && <p className="activity-feedback" role="status">{playMessage}</p>}
   <p className="subtitle">
 
-          Answer for yourself, then guess {partnerName || 'your partner'}'s answer — find out how well you really
-          know each other.
+          Every question is about {partnerName || 'your partner'} — choose the answer you think they would give, then compare your instincts.
         </p>
 
         {battle.totalRounds > 0 && (
@@ -391,7 +374,7 @@ export default function Quizzes() {
       ) : (
         <div className="quiz-taking">
           <div className="quiz-round-label">
-            {round === 'self' ? 'Round 1 · About you' : `Round 2 · Guessing ${partnerName || 'your partner'}`}
+            Guessing {partnerName || 'your partner'}
           </div>
           <div className="quiz-progress-track">
             <div
@@ -404,9 +387,7 @@ export default function Quizzes() {
           </div>
           <div key={`${round}-${step}`} className="quiz-question-enter">
             <p className="quiz-taking-question">
-              {round === 'self'
-                ? subtopic.questions[step][0]
-                : fillPartner(subtopic.questions[step][1], partnerName)}
+              {fillPartner(subtopic.questions[step][1], partnerName)}
             </p>
             <div className="quiz-options">
               {subtopic.questions[step][2].map((opt, i) => (
@@ -414,7 +395,7 @@ export default function Quizzes() {
                   key={i}
                   className={
                     'quiz-option' +
-                    ((round === 'self' ? selfSelections[step] : guessSelections[step]) === i ? ' selected' : '')
+                    (guessSelections[step] === i ? ' selected' : '')
                   }
                   onClick={() => pick(i)}
                 >
