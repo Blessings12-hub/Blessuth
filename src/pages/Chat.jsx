@@ -8,6 +8,7 @@ import PageIntro from '../components/PageIntro'
 
 const PAGE_SIZE = 50
 const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥']
+const LIVE_STICKERS = ['💌', '🌙', '🫶', '✨', '💐', '🥰', '🎉', '🧸']
 const SIGNED_URL_TTL = 60 * 60
 
 function dayLabel(iso) {
@@ -94,6 +95,7 @@ export default function Chat() {
   const [queued, setQueued] = useState([]) // messages waiting to send once back online
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [lightboxUrl, setLightboxUrl] = useState(null)
+  const [stickerOpen, setStickerOpen] = useState(false)
 
   const bottomRef = useRef(null)
   const presenceChannelRef = useRef(null)
@@ -133,7 +135,7 @@ export default function Chat() {
     if (!couple) return
     const { data } = await supabase
       .from('messages')
-      .select('id, couple_id, sender_id, sender_name, text, image_path, voice_path, created_at, updated_at, read_at')
+      .select('id, couple_id, sender_id, sender_name, text, sticker, image_path, voice_path, created_at, updated_at, read_at')
       .eq('couple_id', couple.id)
       .order('created_at', { ascending: false })
       .limit(PAGE_SIZE)
@@ -148,7 +150,7 @@ export default function Chat() {
     const oldest = messages[0].created_at
     const { data } = await supabase
       .from('messages')
-      .select('id, couple_id, sender_id, sender_name, text, image_path, voice_path, created_at, updated_at, read_at')
+      .select('id, couple_id, sender_id, sender_name, text, sticker, image_path, voice_path, created_at, updated_at, read_at')
       .eq('couple_id', couple.id)
       .lt('created_at', oldest)
       .order('created_at', { ascending: false })
@@ -332,6 +334,14 @@ export default function Chat() {
     if (!channel) return
     clearTimeout(myTypingResetRef.current)
     channel.send({ type: 'broadcast', event: 'typing', payload: { userId: user.id } })
+  }
+
+  async function sendSticker(sticker) {
+    if (!couple || sending) return
+    setSending(true)
+    setStickerOpen(false)
+    await supabase.from('messages').insert({ couple_id: couple.id, sender_id: user.id, sender_name: profile?.display_name || 'Me', sticker })
+    setSending(false)
   }
 
   async function send(e) {
@@ -545,6 +555,7 @@ export default function Chat() {
                   <>
                     {m.image_path && <ChatImage path={m.image_path} onOpen={setLightboxUrl} />}
                     {m.audio_path && <VoiceNotePlayer path={m.audio_path} />}
+                    {m.sticker && <div className="chat-sticker" aria-label={`Sticker ${m.sticker}`}>{m.sticker}</div>}
                     {m.text && <div className="chat-bubble-text">{m.text}</div>}
                     <div className="chat-bubble-time">
                       {timeLabel(m.created_at)}
@@ -657,6 +668,7 @@ export default function Chat() {
         >
           {recording ? '⏹️' : '🎤'}
         </button>
+        <button type="button" className="chat-attach-btn" aria-label="Open live stickers" onClick={() => setStickerOpen((open) => !open)} disabled={sending || recording}>★</button>
         <input
           type="text"
           placeholder="Type a message…"
@@ -668,6 +680,7 @@ export default function Chat() {
           Send
         </button>
       </form>
+      {stickerOpen && <div className="sticker-picker" role="group" aria-label="Live stickers">{LIVE_STICKERS.map((sticker) => <button key={sticker} type="button" onClick={() => sendSticker(sticker)} aria-label={`Send ${sticker}`}>{sticker}</button>)}</div>}
       {recording && (
         <button className="link-btn small" onClick={cancelRecording}>
           Cancel recording

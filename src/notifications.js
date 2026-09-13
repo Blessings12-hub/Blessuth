@@ -47,7 +47,7 @@ export function buildAlert(table, record, partnerName) {
     return {
       title: `${name} finished a quiz!`,
       body: `They completed "${subtopicTitle}". Tap to answer and see how you compare.`,
-      url: '/play',
+      url: `/play?tab=quizzes&quiz=${encodeURIComponent(record.quiz_key || '')}`,
     }
   }
 
@@ -71,7 +71,7 @@ export function buildAlert(table, record, partnerName) {
     return {
       title: `${name} guessed in the Word Game`,
       body: 'Come take your turn.',
-      url: '/play',
+      url: `/play?tab=games&game=word`,
     }
   }
 
