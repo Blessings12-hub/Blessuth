@@ -27,7 +27,7 @@ export async function createSpotifyPlayer(getTokenFn, callbacks = {}) {
   await loadSdkScript()
 
   const player = new window.Spotify.Player({
-    name: 'Blessuth',
+    name: 'Usora',
     getOAuthToken: (cb) => {
       getTokenFn().then((token) => cb(token))
     },

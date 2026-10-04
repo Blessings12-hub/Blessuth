@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Nav from './components/Nav'
+import Logo from './components/Logo'
 import InAppAlerts from './components/InAppAlerts'
 import WelcomeSurprise from './components/WelcomeSurprise'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -24,9 +25,12 @@ function Gate({ children }) {
   const { user, profile, loading } = useAuth()
   if (loading)
     return (
-      <div className="loading-screen">
-        <img src="/loading-photo.jpg" alt="" className="loading-screen-photo" />
-        <div className="loading-screen-overlay">
+      <div className="loading-screen" role="status" aria-live="polite">
+        <div className="loading-screen-center">
+          <div className="loading-screen-logo">
+            <Logo size={84} />
+          </div>
+          <span className="loading-screen-brand">Usora</span>
           <span className="loading-screen-text">Loading…</span>
         </div>
       </div>
