@@ -62,7 +62,7 @@ export default async function handler(req, res) {
     const response = await fetch(parsed.toString(), {
       headers: {
         'User-Agent':
-          'Mozilla/5.0 (compatible; BlessuthLinkPreview/1.0; +https://blessuth.vercel.app) AppleWebKit/537.36',
+          'Mozilla/5.0 (compatible; UsoraLinkPreview/1.0; +https://blessuth.vercel.app) AppleWebKit/537.36',
         Accept: 'text/html',
       },
       redirect: 'follow',
