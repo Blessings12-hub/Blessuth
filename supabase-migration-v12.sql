@@ -1,4 +1,4 @@
--- Blessuth v12 migration — run this once in Supabase SQL Editor.
+-- Usora v12 migration — run this once in Supabase SQL Editor.
 -- Run after v1-v11.
 --
 -- Adds emoji reactions to Love Notes, mirroring message_reactions from v10.

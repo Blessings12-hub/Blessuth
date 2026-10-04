@@ -1,4 +1,4 @@
--- Blessuth v14 migration — run this once in Supabase SQL Editor.
+-- Usora v14 migration — run this once in Supabase SQL Editor.
 -- Run after v1-v13.
 --
 -- Push notification for quiz completion. When a partner finishes a quiz

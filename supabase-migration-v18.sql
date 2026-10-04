@@ -1,4 +1,4 @@
--- Blessuth v18 migration — run this once in Supabase SQL Editor.
+-- Usora v18 migration — run this once in Supabase SQL Editor.
 --
 -- Adds real push notifications via Firebase Cloud Messaging, on top of
 -- (not instead of) the in-app alerts from v16 — you still get the instant

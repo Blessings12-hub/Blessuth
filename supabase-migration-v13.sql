@@ -1,4 +1,4 @@
--- Blessuth v13 migration — run this once in Supabase SQL Editor.
+-- Usora v13 migration — run this once in Supabase SQL Editor.
 -- Run after v1-v12.
 --
 -- The Quiz page's mechanic changed: each quiz now has two rounds — your own

@@ -1,4 +1,4 @@
--- Blessuth v16 migration — run this once in Supabase SQL Editor.
+-- Usora v16 migration — run this once in Supabase SQL Editor.
 --
 -- Replaces the push-notification system (native Web Push / VAPID, driven
 -- by a Database Webhook or SQL trigger calling out to /api/notify) with
@@ -7,7 +7,7 @@
 -- no webhook secret, no serverless function, nothing to configure here
 -- beyond running this file.
 --
--- Tradeoff: alerts only show up while Blessuth is open in a tab/PWA
+-- Tradeoff: alerts only show up while Usora is open in a tab/PWA
 -- window. There's no way to notify someone whose phone is locked or app
 -- is fully closed without a real push system — see git history / README
 -- if you ever want to bring that back.

@@ -1,4 +1,4 @@
--- Blessuth v21 migration — run this once in Supabase SQL Editor.
+-- Usora v21 migration — run this once in Supabase SQL Editor.
 --
 -- Adds the Wishlist page: each of you can add things you'd like to get
 -- (a pasted link that auto-fetches a preview image, or your own photo),

@@ -1,4 +1,4 @@
-# Blessuth
+# Usora
 
 A private app for long-distance couples: shared canvas, photo memories, quizzes,
 mood/music sharing, location distance, and love notes.
@@ -62,7 +62,7 @@ prefer not to use git commands.)
 
 ## 6. Notifications
 
-Blessuth has two layers of notifications, and you get both automatically once
+Usora has two layers of notifications, and you get both automatically once
 you've set this up:
 
 - **In-app banners** — instant, no setup, powered by Supabase Realtime. Shows
@@ -191,7 +191,7 @@ right after sending a message, and look for a non-200 response.
   and a shared playlist. Each result also links out to Spotify, Apple Music, and
   YouTube (search-based deep links) so either of you can play the full song in
   whichever app you already use — no login or subscription check needed inside
-  Blessuth itself.
+  Usora itself.
 - **Love Notes**: a lightweight shared message feed.
 - **Chat**: a real-time running conversation — online dot, typing indicator, day
   dividers, "Delivered"/"Seen" status, edit/delete on your own messages, emoji

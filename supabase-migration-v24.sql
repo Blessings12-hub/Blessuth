@@ -1,4 +1,4 @@
--- Blessuth v24 migration: game completion tracking and live chat stickers.
+-- Usora v24 migration: game completion tracking and live chat stickers.
 create table if not exists public.quick_game_scores (
   couple_id uuid not null references public.couples(id) on delete cascade,
   game_key text not null,

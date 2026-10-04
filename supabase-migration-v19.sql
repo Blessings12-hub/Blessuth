@@ -1,4 +1,4 @@
--- Blessuth v19 migration — run this once in Supabase SQL Editor.
+-- Usora v19 migration — run this once in Supabase SQL Editor.
 --
 -- Adds the tables behind 5 new games: the collaborative Word Game, Truth or
 -- Dare, This or That, Tic-Tac-Toe, and Pictionary. All RLS policies follow

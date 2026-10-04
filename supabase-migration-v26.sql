@@ -1,4 +1,4 @@
--- Blessuth v26 migration — run this once in Supabase SQL Editor.
+-- Usora v26 migration — run this once in Supabase SQL Editor.
 
 -- ---------- 1. Pictures + voice notes in Chat ----------
 alter table messages add column if not exists image_path text;

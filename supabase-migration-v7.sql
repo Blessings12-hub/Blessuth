@@ -1,4 +1,4 @@
--- Blessuth v7 migration — run this once in Supabase SQL Editor.
+-- Usora v7 migration — run this once in Supabase SQL Editor.
 -- Adds message editing and push notification subscriptions.
 
 alter table messages add column if not exists edited_at timestamptz;

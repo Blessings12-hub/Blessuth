@@ -1,4 +1,4 @@
--- Blessuth v4 migration — run this once in Supabase SQL Editor.
+-- Usora v4 migration — run this once in Supabase SQL Editor.
 
 alter table profiles add column if not exists birthday date;
 alter table profiles add column if not exists location_sharing_enabled boolean not null default false;

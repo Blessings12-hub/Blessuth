@@ -1,4 +1,4 @@
--- Blessuth v8 migration — run this once in Supabase SQL Editor.
+-- Usora v8 migration — run this once in Supabase SQL Editor.
 -- Adds Spotify track support to the shared playlist.
 
 alter table playlist_tracks add column if not exists spotify_uri text;

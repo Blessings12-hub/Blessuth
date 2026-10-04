@@ -1,4 +1,4 @@
--- Blessuth v11 migration — run this once in Supabase SQL Editor.
+-- Usora v11 migration — run this once in Supabase SQL Editor.
 -- Run after v1-v10.
 --
 -- Two independent changes:

@@ -1,4 +1,4 @@
--- Blessuth v20 migration — run this once in Supabase SQL Editor.
+-- Usora v20 migration — run this once in Supabase SQL Editor.
 --
 -- Adds tables for 5 more games: Connect Four, Never Have I Ever, 20
 -- Questions, Emoji Charades, and Story Chain. Same RLS pattern as v19: a

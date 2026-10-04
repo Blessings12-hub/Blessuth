@@ -1,4 +1,4 @@
--- Blessuth v15 migration — run this once in Supabase SQL Editor.
+-- Usora v15 migration — run this once in Supabase SQL Editor.
 -- Run after v1-v14.
 --
 -- Switches push notifications from OneSignal (a third-party service) back

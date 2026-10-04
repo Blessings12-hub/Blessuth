@@ -1,4 +1,4 @@
--- Blessuth — Supabase schema
+-- Usora — Supabase schema
 -- Run this whole file in Supabase Dashboard → SQL Editor → New query → Run
 
 create extension if not exists "pgcrypto";

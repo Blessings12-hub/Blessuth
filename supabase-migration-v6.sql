@@ -1,4 +1,4 @@
--- Blessuth v6 migration — run this once in Supabase SQL Editor.
+-- Usora v6 migration — run this once in Supabase SQL Editor.
 -- Adds a real-time chat thread between the two partners.
 
 create table if not exists messages (

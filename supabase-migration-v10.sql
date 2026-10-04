@@ -1,4 +1,4 @@
--- Blessuth v10 migration — run this once in Supabase SQL Editor.
+-- Usora v10 migration — run this once in Supabase SQL Editor.
 -- Adds emoji reactions to chat messages. Run after v1-v9.
 
 create table if not exists message_reactions (

@@ -1,4 +1,4 @@
--- Blessuth v23 migration — run this once in Supabase SQL Editor.
+-- Usora v23 migration — run this once in Supabase SQL Editor.
 --
 -- Adds notifications for the 10 games: most fire "your partner did
 -- something, your turn" on a new round/answer/guess, same pattern as

@@ -1,4 +1,4 @@
--- Blessuth v17 migration — run this once in Supabase SQL Editor.
+-- Usora v17 migration — run this once in Supabase SQL Editor.
 --
 -- Adds a "surprise" you can arm from Settings: a short message that shows
 -- as a full-screen animated reveal the next time your partner (not you)

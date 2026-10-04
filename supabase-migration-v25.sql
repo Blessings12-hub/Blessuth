@@ -1,4 +1,4 @@
--- Blessuth v25 migration — run this once in Supabase SQL Editor.
+-- Usora v25 migration — run this once in Supabase SQL Editor.
 --
 -- Adds a column to track whether a saved verse's text came from a real
 -- Bible database (NIV, via API.Bible) or was the AI's own best-effort

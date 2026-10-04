@@ -1,4 +1,4 @@
--- Blessuth v22 migration — run this once in Supabase SQL Editor.
+-- Usora v22 migration — run this once in Supabase SQL Editor.
 --
 -- Adds notifications (both the in-app banner and real push) for the
 -- Wishlist: when your partner adds something new, you get notified, the

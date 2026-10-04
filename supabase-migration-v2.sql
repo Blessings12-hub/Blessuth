@@ -1,4 +1,4 @@
--- Blessuth v2 migration — run this once in Supabase SQL Editor.
+-- Usora v2 migration — run this once in Supabase SQL Editor.
 -- (Safe to run even if you're not sure whether it's been run before —
 -- "if not exists" makes it a no-op the second time.)
 
