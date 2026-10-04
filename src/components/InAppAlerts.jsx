@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useInAppAlerts } from '../hooks/useInAppAlerts'
 
-const MUTE_KEY = 'blessuth-alerts-muted'
-const MUTE_CHANGE_EVENT = 'blessuth-alerts-muted-changed'
+const MUTE_KEY = 'usora-alerts-muted'
+const MUTE_CHANGE_EVENT = 'usora-alerts-muted-changed'
 
 export function alertsMuted() {
   return localStorage.getItem(MUTE_KEY) === '1'
