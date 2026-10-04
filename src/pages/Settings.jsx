@@ -250,7 +250,7 @@ export default function Settings() {
         <h3>Notifications</h3>
         <p className="subtitle">
           You'll see an instant in-app banner when {partnerName || 'your partner'} sends a message,
-          leaves a note, reacts, answers today's question, or finishes a quiz — as long as Blessuth is
+          leaves a note, reacts, answers today's question, or finishes a quiz — as long as Usora is
           open. Turn on push below too if you also want a real notification when the app is closed or
           your phone is locked.
         </p>
@@ -263,7 +263,7 @@ export default function Settings() {
 
         {!pushState.supported ? (
           <p className="subtitle small-note">
-            Push notifications aren't supported in this browser. On iPhone, add Blessuth to your Home
+            Push notifications aren't supported in this browser. On iPhone, add Usora to your Home
             Screen first (Share → Add to Home Screen), then open it from there.
           </p>
         ) : (

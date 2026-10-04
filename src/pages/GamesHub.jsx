@@ -25,8 +25,8 @@ const GAMES = [
   { key: 'story', title: 'Story Chain', desc: 'Build a story, one line at a time', icon: '📖', Component: StoryChain },
 ]
 
-const RECENT_KEY = 'blessuth-recent-games'
-const FAVORITES_KEY = 'blessuth-favorite-games'
+const RECENT_KEY = 'usora-recent-games'
+const FAVORITES_KEY = 'usora-favorite-games'
 
 function loadJSON(key) {
   try {

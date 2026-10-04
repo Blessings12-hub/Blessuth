@@ -30,7 +30,7 @@ export default function LocationPage() {
       <DistanceWidget />
 
       <p className="location-page-note">
-        Location access is handled by your device. For the most reliable updates, keep Blessuth open while sharing.
+        Location access is handled by your device. For the most reliable updates, keep Usora open while sharing.
       </p>
     </main>
   )

@@ -28,7 +28,7 @@ function timeLabel(iso) {
 }
 
 function queueKey(coupleId) {
-  return `blessuth_chat_queue_${coupleId}`
+  return `usora_chat_queue_${coupleId}`
 }
 
 function loadQueuedFromStorage(coupleId) {
