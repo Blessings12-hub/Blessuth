@@ -22,7 +22,7 @@ self.addEventListener('push', (event) => {
     payload = {}
   }
 
-  const title = payload.notification?.title || payload.data?.title || 'Blessuth'
+  const title = payload.notification?.title || payload.data?.title || 'Usora'
   const body = payload.notification?.body || payload.data?.body || ''
   const link = payload.fcmOptions?.link || payload.data?.link || '/'
 

@@ -14,10 +14,10 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data ? event.data.json() : {}
   } catch (e) {
-    data = { title: 'Blescy', body: event.data ? event.data.text() : '' }
+    data = { title: 'Usora', body: event.data ? event.data.text() : '' }
   }
 
-  const title = data.title || 'Blescy'
+  const title = data.title || 'Usora'
   const options = {
     body: data.body || '',
     icon: '/icon-192.png',
